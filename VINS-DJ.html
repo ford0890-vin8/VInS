@@ -545,7 +545,7 @@ function renderQueue() {
         <div class="q-card-info">
           <div class="q-card-song">${esc(displayTitle)}</div>
           ${displayArtist ? `<div class="q-card-artist">${esc(displayArtist)}</div>` : ""}
-          ${showOriginal ? `<div class="q-card-orig">guest typed: "${esc(r.songQuery)}"</div>` : ""}
+          <div class="q-card-orig">guest typed: "${esc(r.songQuery)}"</div>
         </div>
         <div class="q-card-table">${r.tableNumber && r.tableNumber !== "?" ? "T" + r.tableNumber : ""}</div>
       </div>
@@ -593,8 +593,6 @@ async function respond(r, status) {
   // DJ still needs to manually hit ▶ Play in "Set Now Playing" when they actually play it
   if (status === "accepted") {
     addHistoryRow(null, { song: title, artist, time: nowTime(), tag: "Requested" }, true);
-    // Pre-fill the Set Now Playing input so DJ can hit Play with one tap when ready
-    document.getElementById("np-input").value = title + (artist ? " - " + artist : "");
     const acceptToasts = [
     "✓ Accepted — pre-filled above, hit Play when ready!",
     "✓ They're gonna love you for this one 🤘",

@@ -488,6 +488,7 @@ function startFirebase() {
     snap => {
       if (!snap.exists()) return;
       const d = snap.data();
+      const prevSong = nowSong;
       nowSong = d.song || "";
       document.getElementById("np-song").textContent   = d.song   || "Waiting for DJ...";
       document.getElementById("np-artist").textContent = d.artist || "";
@@ -498,6 +499,26 @@ function startFirebase() {
       document.getElementById("rc-fire").textContent = r.fire || 0;
       document.getElementById("rc-love").textContent = r.love || 0;
       document.getElementById("rc-meh").textContent  = r.meh  || 0;
+
+      // Check if this new song matches any of the guest's accepted requests
+      if (d.song && d.song !== prevSong) {
+        const reqs = loadRequests();
+        reqs.forEach(r => {
+          if (r.status === "accepted") {
+            const songLower = d.song.toLowerCase();
+            const queryLower = (r.song || "").toLowerCase();
+            // Match if song name contains what guest typed or vice versa
+            if (songLower.includes(queryLower) || queryLower.includes(songLower) ||
+                queryLower.split(" ").some(word => word.length > 3 && songLower.includes(word))) {
+              renderCard(r.id, r.song, "nowplaying", null, null);
+              // Update stored status
+              const arr = loadRequests();
+              const idx = arr.findIndex(x => x.id === r.id);
+              if(idx >= 0){ arr[idx].status = "nowplaying"; saveRequests(arr); }
+            }
+          }
+        });
+      }
     },
     err => console.warn("NP listener:", err.message)
   );

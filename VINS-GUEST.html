@@ -505,13 +505,19 @@ function startFirebase() {
         const reqs = loadRequests();
         reqs.forEach(r => {
           if (r.status === "accepted") {
-            const songLower = d.song.toLowerCase();
-            const queryLower = (r.song || "").toLowerCase();
-            // Match if song name contains what guest typed or vice versa
-            if (songLower.includes(queryLower) || queryLower.includes(songLower) ||
-                queryLower.split(" ").some(word => word.length > 3 && songLower.includes(word))) {
-              renderCard(r.id, r.song, "nowplaying", null, null);
-              // Update stored status
+            const songLower  = d.song.toLowerCase().trim();
+            const queryLower = (r.song || "").toLowerCase().trim();
+            // Multiple matching strategies
+            const exactMatch   = songLower === queryLower;
+            const containsMatch = songLower.includes(queryLower) || queryLower.includes(songLower);
+            const wordMatch    = queryLower.split(" ").filter(w => w.length > 3)
+                                  .some(word => songLower.includes(word));
+            if (exactMatch || containsMatch || wordMatch) {
+              // Find the card — could be stored as r.id or "r_" + r.id
+              const cardEl = document.getElementById(r.id) || document.getElementById("r_" + r.id);
+              const cardId = cardEl ? cardEl.id : r.id;
+              renderCard(cardId, r.song, "nowplaying", null, null);
+              // Update stored status so it survives refresh
               const arr = loadRequests();
               const idx = arr.findIndex(x => x.id === r.id);
               if(idx >= 0){ arr[idx].status = "nowplaying"; saveRequests(arr); }

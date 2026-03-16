@@ -192,6 +192,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .act-later  { background: rgba(232,160,32,0.07);  border-color: rgba(232,160,32,0.22);  color: var(--amber); }
 .act-review { background: rgba(91,164,207,0.07);  border-color: rgba(91,164,207,0.22);  color: var(--blue);  }
 .act-pass   { background: rgba(192,57,43,0.07);   border-color: rgba(192,57,43,0.17);   color: var(--red2);  }
+.act-played { background: rgba(150,100,200,0.07); border-color: rgba(150,100,200,0.25); color: rgba(180,140,220,0.9); }
 
 /* Sidebar */
 .sidebar { overflow-y: auto; padding: 12px; }
@@ -452,10 +453,24 @@ function startListeners() {
 
   const q = query(collection(db, "requests"), where("venueId", "==", venue));
   unsubReq = onSnapshot(q, snap => {
-    const pending = snap.docs
+    const allPending = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(r => r.sessionId === sid && r.status === "pending")
       .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+
+    // Count how many times each song was requested (normalised lowercase)
+    const songCount = {};
+    allPending.forEach(r => {
+      const key = r.songQuery.toLowerCase().trim();
+      songCount[key] = (songCount[key] || 0) + 1;
+    });
+    // Sort: most requested first, then by time
+    const pending = [...allPending].sort((a, b) => {
+      const ca = songCount[a.songQuery.toLowerCase().trim()] || 1;
+      const cb = songCount[b.songQuery.toLowerCase().trim()] || 1;
+      if (cb !== ca) return cb - ca; // more requests = higher
+      return (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0);
+    });
 
     // Capture new items BEFORE any async work
     const existingIds = new Set(queue.map(r => r.id));
@@ -543,7 +558,7 @@ function renderQueue() {
     card.innerHTML = `
       <div class="q-card-top">
         <div class="q-card-info">
-          <div class="q-card-song">${esc(displayTitle)}</div>
+          <div class="q-card-song">${esc(displayTitle)} ${songCount[r.songQuery.toLowerCase().trim()] > 1 ? `<span style="background:rgba(232,160,32,0.2);border:1px solid rgba(232,160,32,0.4);color:#E8A020;font-size:10px;padding:1px 6px;border-radius:10px;font-family:'Courier Prime',monospace;margin-left:4px">${songCount[r.songQuery.toLowerCase().trim()]}x</span>` : ""}</div>
           ${displayArtist ? `<div class="q-card-artist">${esc(displayArtist)}</div>` : ""}
           <div class="q-card-orig">guest typed: "${esc(r.songQuery)}"</div>
         </div>
@@ -555,20 +570,30 @@ function renderQueue() {
         ${guestChip}
       </div>
       <div class="q-actions">
-        <button class="q-action act-play"   data-id="${r.id}">✓ Accept</button>
-        <button class="q-action act-later"  data-id="${r.id}">⏱ Later</button>
-        <button class="q-action act-review" data-id="${r.id}">🔍 Review</button>
-        <button class="q-action act-pass"   data-id="${r.id}">✕ Pass</button>
+        <button class="q-action act-play"    data-id="${r.id}">✓ Accept</button>
+        <button class="q-action act-later"   data-id="${r.id}">⏱ Later</button>
+        <button class="q-action act-played"  data-id="${r.id}">↩ Played</button>
+        <button class="q-action act-pass"    data-id="${r.id}">✕ Pass</button>
       </div>`;
 
-    // Safe click handlers — no inline strings so apostrophes never break anything
     card.querySelector(".act-play").addEventListener("click",   () => respond(r, "accepted"));
     card.querySelector(".act-later").addEventListener("click",  () => respond(r, "later"));
-    card.querySelector(".act-review").addEventListener("click", () => respond(r, "reviewing"));
+    card.querySelector(".act-played").addEventListener("click", () => respondAlreadyPlayed(r));
     card.querySelector(".act-pass").addEventListener("click",   () => respond(r, "passed"));
 
     list.appendChild(card);
   });
+}
+
+// ── Already Played — mark as passed, give guest +1 request back ──
+async function respondAlreadyPlayed(r) {
+  await updateDoc(doc(db, "requests", r.id), {
+    status: "passed",
+    respondedAt: serverTimestamp(),
+    djMessage: "alreadyplayed" // special flag guest page reads
+  }).catch(err => console.error("alreadyplayed:", err));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  toast(pick(["↩ Already played — guest gets +1","↩ Sent them back for another try","↩ Guest notified — song was already on"]));
 }
 
 // ── Respond to request ──
@@ -674,7 +699,21 @@ function makeHistoryEl(num, item) {
       <div class="history-song">${esc(item.song)}</div>
       <div class="history-meta">${item.artist ? esc(item.artist) + " · " : ""}${item.time}</div>
     </div>
+    <button class="hist-now-btn" title="Notify guests this is playing now">▶ Now</button>
     <span class="history-tag ${item.tag === "DJ Pick" ? "tag-dj" : "tag-req"}">${item.tag}</span>`;
+
+  // ▶ Now button — writes to nowplaying so guest phones light up
+  el.querySelector(".hist-now-btn").addEventListener("click", async () => {
+    await setDoc(doc(db, "nowplaying", venue), {
+      song: item.song, artist: item.artist || "", duration: null,
+      startedAt: serverTimestamp(), sessionId: sid, djName,
+      reactions: { fire: 0, love: 0, meh: 0 }
+    }).catch(console.error);
+    document.getElementById("np-title").textContent = item.song;
+    document.getElementById("np-meta").textContent  = item.artist || "";
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    toast(pick([`▶ "${item.song}" — guests notified!`, `🔥 Playing "${item.song}" — they know!`, `🎸 "${item.song}" is live — guests cheering!`]));
+  });
   return el;
 }
 

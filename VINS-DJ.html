@@ -343,24 +343,7 @@ let played   = 0;
 let unsubReq = null;
 let songCount = {}; // tracks duplicate request counts for sorting + badges
 
-// ── MusicBrainz lookup (enriches song cards) ──
-const mbCache = {};
-async function lookupSong(query) {
-  const key = query.toLowerCase().trim();
-  if (mbCache[key]) return mbCache[key];
-  try {
-    const res  = await fetch("https://musicbrainz.org/ws/2/recording/?query=" + encodeURIComponent(query) + "&limit=1&fmt=json", { headers: { "User-Agent": "VinS/1.0" } });
-    const data = await res.json();
-    const rec  = data?.recordings?.[0];
-    if (!rec) return null;
-    const artist = rec["artist-credit"]?.[0]?.artist?.name || "";
-    const ms     = rec.length || 0;
-    const dur    = ms ? Math.floor(ms/60000) + ":" + String(Math.floor((ms%60000)/1000)).padStart(2,"0") : null;
-    const info   = { title: rec.title, artist, duration: dur };
-    mbCache[key] = info;
-    return info;
-  } catch (e) { return null; }
-}
+// MusicBrainz removed — show exactly what guest typed
 
 // ── Boot — check for saved session ──
 window.addEventListener("load", async () => {
@@ -482,24 +465,8 @@ function startListeners() {
     renderQueue();
     newItems.forEach(r => toast('♪ New: "' + r.songQuery + '"'));
 
-    // Enrich new items asynchronously — won't cause duplicates since we already rendered
-    if (newItems.length) {
-      (async () => {
-        for (const r of newItems) {
-          const info = await lookupSong(r.songQuery);
-          if (info) {
-            // Find item in current queue and update it
-            const i = queue.findIndex(x => x.id === r.id);
-            if (i >= 0) {
-              queue[i].resolvedTitle  = info.title;
-              queue[i].resolvedArtist = info.artist;
-              queue[i].duration       = info.duration;
-            }
-          }
-        }
-        renderQueue(); // re-render once all lookups done
-      })();
-    }
+    // No enrichment — show exactly what guest typed
+  }
   }, err => console.error("Listener:", err.code, err.message));
 
   // Reactions on Now Playing
@@ -545,12 +512,8 @@ function renderQueue() {
   list.innerHTML = "";
   queue.forEach(r => {
     // Show resolved title only if MB found something AND it's a real song name (not same as query)
-    const queryClean   = r.songQuery.toLowerCase().trim();
-    const titleClean   = (r.resolvedTitle||"").toLowerCase().trim();
-    const goodMatch    = r.resolvedTitle && titleClean !== queryClean && r.duration;
-    const displayTitle = goodMatch ? r.resolvedTitle : r.songQuery;
-    const displayArtist= goodMatch ? (r.resolvedArtist || "") : "";
-    const showOriginal = goodMatch && titleClean !== queryClean;
+    const displayTitle  = r.songQuery;
+    const displayArtist = "";
     const guestChip = (r.guestAge || r.guestGender)
       ? `<span class="chip chip-guest">👤 ${[r.guestAge, r.guestGender].filter(Boolean).join(" · ")}</span>` : "";
 
@@ -561,13 +524,12 @@ function renderQueue() {
         <div class="q-card-info">
           <div class="q-card-song">${esc(displayTitle)} ${songCount[r.songQuery.toLowerCase().trim()] > 1 ? `<span style="background:rgba(232,160,32,0.2);border:1px solid rgba(232,160,32,0.4);color:#E8A020;font-size:10px;padding:1px 6px;border-radius:10px;font-family:'Courier Prime',monospace;margin-left:4px">${songCount[r.songQuery.toLowerCase().trim()]}x</span>` : ""}</div>
           ${displayArtist ? `<div class="q-card-artist">${esc(displayArtist)}</div>` : ""}
-          <div class="q-card-orig">guest typed: "${esc(r.songQuery)}"</div>
+
         </div>
         <div class="q-card-table">${r.tableNumber && r.tableNumber !== "?" ? "T" + r.tableNumber : ""}</div>
       </div>
       <div class="q-chips">
-        ${r.duration && goodMatch ? `<span class="chip chip-dur">⏱ ${r.duration}</span>` : ""}
-        ${goodMatch ? `<span class="chip chip-mb">◎ MB</span>` : ""}
+
         ${guestChip}
       </div>
       <div class="q-actions">
@@ -590,9 +552,9 @@ function renderQueue() {
 // ── Already Played — mark as passed, give guest +1 request back ──
 async function respondAlreadyPlayed(r) {
   await updateDoc(doc(db, "requests", r.id), {
-    status: "passed",
+    status: "alreadyplayed",  // distinct status so guest page handles it separately
     respondedAt: serverTimestamp(),
-    djMessage: "alreadyplayed" // special flag guest page reads
+    djMessage: "alreadyplayed"
   }).catch(err => console.error("alreadyplayed:", err));
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   toast(pick(["↩ Already played — guest gets +1","↩ Sent them back for another try","↩ Guest notified — song was already on"]));
@@ -600,12 +562,9 @@ async function respondAlreadyPlayed(r) {
 
 // ── Respond to request ──
 async function respond(r, status) {
-  const queryClean    = r.songQuery.toLowerCase().trim();
-  const titleClean    = (r.resolvedTitle||"").toLowerCase().trim();
-  const goodMatch     = r.resolvedTitle && titleClean !== queryClean && r.duration;
-  const title  = goodMatch ? r.resolvedTitle  : r.songQuery;
-  const artist = goodMatch ? (r.resolvedArtist || "") : "";
-  const dur    = goodMatch ? (r.duration || "") : "";
+  const title  = r.songQuery;
+  const artist = "";
+  const dur    = "";
 
   await updateDoc(doc(db, "requests", r.id), {
     status,
@@ -634,9 +593,8 @@ async function respond(r, status) {
 
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   const toasts = {
-    later:    pick(["⏱ Maybe later — no promises made","⏱ Not now, guest notified","⏱ Told them it's a maybe","⏱ No guarantees — guest knows"]),
-    reviewing:pick(["🔍 Pulling it up...","🔍 Giving it a listen","🔍 DJ is considering...","🔍 The jury is deliberating"]),
-    passed:   pick(["✕ Passed — guest notified","✕ Not tonight's vibe","✕ The floor said no","✕ Respectfully declined 😄"])
+    later:    pick(["⏱ Maybe later — no promises","⏱ Told them it's a maybe","⏱ Not now, possibly later","⏱ No guarantees — they know","⏱ In the maybe pile"]),
+    passed:   pick(["✕ Passed — guest notified","✕ Not tonight's vibe","✕ Respectfully declined 😄","✕ Hard pass — they're told","✕ Not this one tonight"])
   };
   toast(toasts[status] || "Done");
 }

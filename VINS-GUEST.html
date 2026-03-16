@@ -128,10 +128,10 @@ html, body {
   text-align: center;
 }
 .venue-name { font-family: "Abril Fatface", serif; font-size: 36px; color: var(--gold); text-shadow: 0 2px 18px rgba(232,160,32,0.5); }
-.venue-tag  { font-family: "Courier Prime", monospace; font-size: 11px; color: rgba(245,237,216,0.55); font-style: italic; margin-top: 3px; }
-.dj-name    { font-family: "Courier Prime", monospace; font-size: 12px; color: var(--gold); font-style: italic; margin-top: 4px; min-height: 16px; }
+.venue-tag  { font-family: "Courier Prime", monospace; font-size: 13px; color: rgba(245,237,216,0.7); font-style: italic; margin-top: 4px; }
+.dj-name    { font-family: "Barlow Condensed", sans-serif; font-size: 18px; font-weight: 600; color: var(--gold); letter-spacing: .05em; margin-top: 6px; min-height: 20px; text-shadow: 0 0 20px rgba(232,160,32,0.4); }
 .genres     { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-top: 7px; }
-.genre      { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; border: 1px solid rgba(184,48,37,0.5); color: rgba(231,76,60,0.9); padding: 3px 8px; border-radius: 4px; background: rgba(184,48,37,0.08); }
+.genre      { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; border: 1px solid rgba(184,48,37,0.6); color: rgba(231,76,60,1); padding: 4px 10px; border-radius: 4px; background: rgba(184,48,37,0.12); }
 
 /* Now Playing */
 .np-card {
@@ -266,7 +266,7 @@ html, body {
 }
 .send-btn svg { width: 14px; height: 14px; fill: white; }
 .cancel-link { display: block; text-align: center; font-size: 11px; color: var(--muted); font-family: "Courier Prime", monospace; cursor: pointer; text-decoration: underline; padding: 2px 0; }
-.resync-link { display: block; text-align: center; font-size: 11px; color: rgba(245,237,216,0.2); font-family: "Courier Prime", monospace; cursor: pointer; text-decoration: underline; margin-top: 16px; }
+.resync-link { display: block; text-align: center; font-size: 13px; color: rgba(232,160,32,0.6); font-family: "Barlow Condensed", sans-serif; font-weight: 600; letter-spacing: .08em; cursor: pointer; text-decoration: underline; margin-top: 20px; text-transform: uppercase; }
 
 /* Ticker */
 #ticker {
@@ -459,12 +459,13 @@ function startFirebase() {
   onSnapshot(
     query(collection(db, "sessions"), where("venueId", "==", VENUE)),
     snap => {
-      const liveSessions = snap.docs
+      const twelveHoursAgo = Date.now() / 1000 - (12 * 60 * 60);
+    const liveSessions = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter(s => s.isLive === true)
-      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)); // newest first
+      .filter(s => s.isLive === true && (s.createdAt?.seconds || 0) > twelveHoursAgo)
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
-    const liveDoc = liveSessions[0]; // take the most recently started session
+    const liveDoc = liveSessions[0]; // most recently started session within last 12 hours
       if (liveDoc) {
         const newSid = liveDoc.id;
         const newDj  = liveDoc.djName || "";

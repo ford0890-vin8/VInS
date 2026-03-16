@@ -327,7 +327,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc,
-         updateDoc, setDoc, query, where, serverTimestamp, getDoc }
+         updateDoc, setDoc, query, where, serverTimestamp, getDoc, getDocs }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // ── Firebase ──
@@ -398,9 +398,15 @@ async function startSession() {
   st.className   = "login-status";
 
   try {
+    // Kill ALL existing live sessions for this venue first
+    // This prevents ghost sessions confusing the guest page
+    const oldSessions = await getDocs(query(collection(db, "sessions"),
+      where("venueId", "==", venue), where("isLive", "==", true)));
+    for (const s of oldSessions.docs) {
+      await updateDoc(doc(db, "sessions", s.id), { isLive: false, endedAt: serverTimestamp() }).catch(() => {});
+    }
+
     const now = new Date();
-    // Use the START date of the session even if it runs past midnight
-    // e.g. session starts 15th at 19:30, ends 16th at 00:30 — date is still "2026-03-15"
     const sessionDate = now.toISOString().split("T")[0];
     const ref = await addDoc(collection(db, "sessions"), {
       venueId:   venue,
@@ -408,7 +414,7 @@ async function startSession() {
       djName,
       startTime: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
       isLive:    true,
-      date:      sessionDate,  // always the date the set STARTED
+      date:      sessionDate,
       createdAt: serverTimestamp()
     });
     sid = ref.id;

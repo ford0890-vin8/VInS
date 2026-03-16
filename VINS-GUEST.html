@@ -500,28 +500,25 @@ function startFirebase() {
       document.getElementById("rc-love").textContent = r.love || 0;
       document.getElementById("rc-meh").textContent  = r.meh  || 0;
 
-      // Check if this new song matches any of the guest's accepted requests
+      // Only flip cards that are explicitly "accepted" AND match the now playing song
+      // Never touch cards in any other status
       if (d.song && d.song !== prevSong) {
         const reqs = loadRequests();
         reqs.forEach(r => {
-          if (r.status === "accepted") {
-            const songLower  = d.song.toLowerCase().trim();
-            const queryLower = (r.song || "").toLowerCase().trim();
-            // Multiple matching strategies
-            const exactMatch   = songLower === queryLower;
-            const containsMatch = songLower.includes(queryLower) || queryLower.includes(songLower);
-            const wordMatch    = queryLower.split(" ").filter(w => w.length > 3)
-                                  .some(word => songLower.includes(word));
-            if (exactMatch || containsMatch || wordMatch) {
-              // Find the card — could be stored as r.id or "r_" + r.id
-              const cardEl = document.getElementById(r.id) || document.getElementById("r_" + r.id);
-              const cardId = cardEl ? cardEl.id : r.id;
-              renderCard(cardId, r.song, "nowplaying", null, null);
-              // Update stored status so it survives refresh
-              const arr = loadRequests();
-              const idx = arr.findIndex(x => x.id === r.id);
-              if(idx >= 0){ arr[idx].status = "nowplaying"; saveRequests(arr); }
-            }
+          if (r.status !== "accepted") return; // ONLY touch accepted cards
+          const songLower  = d.song.toLowerCase().trim();
+          const queryLower = (r.song || "").toLowerCase().trim();
+          const exactMatch    = songLower === queryLower;
+          const containsMatch = songLower.includes(queryLower) || queryLower.includes(songLower);
+          const wordMatch     = queryLower.split(" ").filter(w => w.length > 3)
+                                 .some(word => songLower.includes(word));
+          if (exactMatch || containsMatch || wordMatch) {
+            const cardEl = document.getElementById(r.id) || document.getElementById("r_" + r.id);
+            const cardId = cardEl ? cardEl.id : r.id;
+            renderCard(cardId, r.song, "nowplaying", null, null);
+            const arr = loadRequests();
+            const idx = arr.findIndex(x => x.id === r.id);
+            if(idx >= 0){ arr[idx].status = "nowplaying"; saveRequests(arr); }
           }
         });
       }
@@ -706,8 +703,8 @@ function buildCardHTML(song, status, queue, message) {
       title: pick(["Request Accepted!","You're On The List!","Consider It Done!","The DJ Said Yes!","Locked In!"]),
       sub:   pick(["Coming up in a couple songs","Hold your spot on the floor","Stay close — it's happening","The floor is about to get it"]) },
     later:    { icon: "&#x23F1;", color: "#E8A020", bg: "rgba(232,160,32,0.08)", border: "rgba(232,160,32,0.22)",
-      title: pick(["Saved For Later","In The Pipeline","Not Yet But Soon","The DJ's Got Plans"]),
-      sub:   pick(["Timing is everything tonight","Your moment is coming","Patience, the night is long","DJ's playing the long game"]) },
+      title: pick(["Not Now, Maybe Later","No Promises Though...","Perhaps. No Guarantees.","We'll See How The Night Goes"]),
+      sub:   pick(["Not a yes, not a no — just not now","The DJ'll try if the vibe allows","Don't hold your breath, but don't give up","Maybe later, maybe not — that's music"]) },
     reviewing:{ icon: "&#x1F50D;", color: "#7BC8F5", bg: "rgba(91,164,207,0.08)", border: "rgba(91,164,207,0.22)",
       title: pick(["Under Review...","DJ Is Thinking...","Interesting Choice...","Hold That Thought"]),
       sub:   pick(["DJ is checking the vibe","Pulling up the track","This one needs consideration","The jury is still out"]) },

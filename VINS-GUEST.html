@@ -863,7 +863,7 @@ function getSmartHoldingMsg() {
   const h = new Date().getHours();
   if (h >= 0 && h < 5) return {
     msg: "Still up at this hour? 🌙",
-    sub: "The DJ's catching some sleep. Hidden Place wakes up after 7PM."
+    sub: "The DJ is catching some sleep. Hidden Place wakes up after 7PM."
   };
   if (h >= 5 && h < 12) return {
     msg: "Good Morning! 🌅",
@@ -883,8 +883,8 @@ function getSmartHoldingMsg() {
   };
   // 11PM - midnight
   return {
-    msg: "Night's winding down... 🌙",
-    sub: "If the DJ's not live yet, they might be done for tonight."
+    msg: "Winding down now... 🌙",
+    sub: "If the DJ is not live yet, they might be done for tonight."
   };
 }
 
@@ -893,8 +893,7 @@ function getSmartEndedMsg() {
   if (h >= 0 && h < 5) return {
     icon: "🌙",
     msg: "Missing Hidden Place already? 😄",
-    sub: "We know, can't wait for tomorrow either!
-See you back here after 7PM."
+    sub: "We know, cannot wait for tomorrow either! See you back here after 7PM."
   };
   if (h >= 5 && h < 12) return {
     icon: "☕",
@@ -903,7 +902,7 @@ See you back here after 7PM."
   };
   return {
     icon: "🎸",
-    msg: "That's a wrap for tonight!",
+    msg: "Thats a wrap for tonight!",
     sub: "Thanks for being part of the night.
 See you next time at Hidden Place."
   };

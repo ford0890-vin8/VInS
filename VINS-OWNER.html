@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VinS Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Barlow+Condensed:wght@300;400;500;600;700&family=Courier+Prime:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08070A; --card: #0F0E13; --card2: #161520;
+  --b1: rgba(255,255,255,0.07); --b2: rgba(255,255,255,0.13);
+  --gold: #E8A020; --red: #C0392B; --red2: #E74C3C;
+  --text: #F0EDE8; --muted: rgba(240,237,232,0.4);
+  --green: #4CAF50; --blue: #5BA4CF;
+}
+html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: "Barlow Condensed", sans-serif; }
+header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--b1); background:rgba(8,7,10,0.96); position:sticky; top:0; z-index:10; gap:12px; flex-wrap:wrap; }
+.logo { font-family:"Abril Fatface",serif; font-size:22px; color:var(--gold); }
+.logo-sub { font-size:10px; font-family:"Courier Prime",monospace; color:var(--muted); margin-top:1px; }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); flex-wrap:wrap; }
+.bc-link { cursor:pointer; color:var(--gold); text-decoration:underline; }
+.bc-link:hover { color:#FFD060; }
+main { max-width:1100px; margin:0 auto; padding:20px 20px 60px; }
+.live-bar { background:linear-gradient(135deg,rgba(192,57,43,0.14),rgba(139,0,0,0.06)); border:1px solid rgba(192,57,43,0.2); border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.live-eq { display:flex; align-items:center; gap:2px; height:15px; }
+.live-eq span { width:3px; background:var(--red2); border-radius:2px; animation:eq 0.8s ease-in-out infinite alternate; }
+.live-eq span:nth-child(1){height:6px;animation-delay:0s}.live-eq span:nth-child(2){height:12px;animation-delay:0.15s}.live-eq span:nth-child(3){height:9px;animation-delay:0.3s}.live-eq span:nth-child(4){height:14px;animation-delay:0.45s}
+@keyframes eq{to{transform:scaleY(0.3)}}
+.live-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--red2);margin-bottom:2px}
+.live-song{font-family:"Abril Fatface",serif;font-size:16px}
+.live-artist{font-size:11px;color:var(--muted);margin-top:1px}
+.live-reacts{display:flex;gap:12px;margin-left:auto;font-size:12px;color:var(--muted)}
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+.stat-card { background:var(--card); border:1px solid var(--b1); border-radius:10px; padding:14px; text-align:center; }
+.stat-big { font-family:"Abril Fatface",serif; font-size:28px; line-height:1; }
+.stat-small { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.panel { background:var(--card); border:1px solid var(--b1); border-radius:10px; padding:16px; }
+.panel-title { font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; padding-bottom:7px; border-bottom:1px solid var(--b1); }
+.bar-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; font-size:12px; }
+.bar-label { min-width:60px; color:var(--muted); font-family:"Courier Prime",monospace; }
+.bar-track { flex:1; background:rgba(255,255,255,0.05); border-radius:3px; height:8px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:3px; background:var(--gold); transition:width 0.5s; }
+.bar-val { min-width:28px; text-align:right; color:var(--text); font-weight:600; }
+.outcomes { display:flex; gap:8px; flex-wrap:wrap; }
+.outcome-chip { background:var(--card2); border:1px solid var(--b1); border-radius:8px; padding:10px 14px; flex:1; min-width:60px; text-align:center; }
+.outcome-num { font-family:"Abril Fatface",serif; font-size:22px; }
+.outcome-lbl { font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+.reactions-row { display:flex; gap:8px; }
+.reaction-card { flex:1; background:var(--card2); border:1px solid var(--b1); border-radius:8px; padding:12px; text-align:center; }
+.reaction-emoji { font-size:22px; margin-bottom:4px; }
+.reaction-count { font-family:"Abril Fatface",serif; font-size:20px; }
+.reaction-label { font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+.loading-msg { color:var(--muted); font-size:12px; font-family:"Courier Prime",monospace; }
+.drill-title { font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.drill-grid { display:grid; gap:8px; margin-bottom:20px; }
+.drill-grid.venues  { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
+.drill-grid.years   { grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
+.drill-grid.months  { grid-template-columns:repeat(4,1fr); }
+.drill-grid.days    { grid-template-columns:repeat(7,1fr); }
+.drill-card { background:var(--card); border:1px solid var(--b1); border-radius:10px; padding:14px; cursor:pointer; transition:all 0.15s; }
+.drill-card:hover { border-color:rgba(232,160,32,0.4); background:rgba(232,160,32,0.05); }
+.drill-card.empty { opacity:0.3; cursor:default; }
+.drill-card.empty:hover { border-color:var(--b1); background:var(--card); }
+.dc-name { font-size:15px; font-weight:700; }
+.dc-sub  { font-size:11px; color:var(--muted); font-family:"Courier Prime",monospace; }
+.dc-stat { font-size:11px; color:var(--gold); margin-top:4px; }
+.day-card { text-align:center; padding:10px 6px; }
+.day-card .dc-name { font-size:18px; font-family:"Abril Fatface",serif; }
+hr.div { border:none; border-top:1px solid var(--b1); margin:20px 0; }
+.song-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--b1); font-size:13px; }
+.song-rank { font-family:"Abril Fatface",serif; font-size:16px; color:var(--muted); min-width:20px; }
+.song-name { flex:1; font-weight:600; }
+.song-count { color:var(--gold); font-weight:700; }
+.sess-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--b1); font-size:12px; }
+.sess-dj { font-weight:700; flex:1; }
+.sess-date { font-family:"Courier Prime",monospace; color:var(--muted); font-size:11px; }
+.sess-reqs { background:rgba(232,160,32,0.1); border:1px solid rgba(232,160,32,0.2); border-radius:4px; padding:2px 7px; font-size:11px; color:var(--gold); }
+.sess-live { background:rgba(76,175,80,0.1); border:1px solid rgba(76,175,80,0.25); border-radius:4px; padding:2px 7px; font-size:10px; color:var(--green); }
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.drill-grid.months{grid-template-columns:repeat(3,1fr)}.drill-grid.days{grid-template-columns:repeat(5,1fr)}}
+
+/* ── Detail Modal ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+.modal-box { background:var(--card); border:1px solid var(--b2); border-radius:14px; width:100%; max-width:680px; padding:20px; position:relative; }
+.modal-close { position:absolute; top:14px; right:16px; background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; }
+.modal-close:hover { color:var(--text); }
+.modal-title { font-family:"Abril Fatface",serif; font-size:20px; color:var(--gold); margin-bottom:4px; }
+.modal-sub { font-size:11px; color:var(--muted); font-family:"Courier Prime",monospace; margin-bottom:16px; }
+.detail-row { display:flex; align-items:flex-start; gap:12px; padding:8px 0; border-bottom:1px solid var(--b1); font-size:13px; }
+.detail-row:last-child { border-bottom:none; }
+.detail-time { font-family:"Courier Prime",monospace; font-size:11px; color:var(--gold); min-width:65px; padding-top:1px; }
+.detail-main { flex:1; }
+.detail-song { font-weight:600; font-size:14px; }
+.detail-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+.detail-badge { font-size:10px; padding:2px 7px; border-radius:10px; font-weight:600; }
+.badge-accepted { background:rgba(76,175,80,0.12); color:var(--green); border:1px solid rgba(76,175,80,0.25); }
+.badge-later    { background:rgba(232,160,32,0.12); color:var(--gold);  border:1px solid rgba(232,160,32,0.25); }
+.badge-passed   { background:rgba(192,57,43,0.12);  color:var(--red2);  border:1px solid rgba(192,57,43,0.25); }
+.badge-table    { background:rgba(91,164,207,0.12); color:var(--blue);  border:1px solid rgba(91,164,207,0.25); }
+.clickable-stat { cursor:pointer; transition:transform 0.1s; }
+.clickable-stat:hover .stat-big { text-decoration:underline; }
+.clickable-stat:hover { transform:scale(1.03); }
+.clickable-outcome { cursor:pointer; transition:all 0.1s; }
+.clickable-outcome:hover { border-color:rgba(232,160,32,0.3) !important; background:rgba(232,160,32,0.04) !important; }
+.clickable-reaction { cursor:pointer; transition:all 0.1s; }
+.clickable-reaction:hover { border-color:rgba(232,160,32,0.3) !important; }
+</style>
+</head>
+<body>
+<header>
+  <div><div class="logo">VinS Analytics</div><div class="logo-sub">Owner Dashboard</div></div>
+  <div class="breadcrumb" id="breadcrumb"><span>Venues</span></div>
+</header>
+<main>
+  <div class="live-bar">
+    <div class="live-eq"><span></span><span></span><span></span><span></span></div>
+    <div class="live-info">
+      <div class="live-label">Live Now</div>
+      <div class="live-song" id="live-song">—</div>
+      <div class="live-artist" id="live-artist"></div>
+    </div>
+    <div class="live-reacts">
+      <div>🔥 <span id="live-fire">0</span></div>
+      <div>❤️ <span id="live-love">0</span></div>
+      <div>😐 <span id="live-meh">0</span></div>
+    </div>
+  </div>
+  <div id="drill-nav"></div>
+  <div id="analytics-wrap" style="display:none">
+    <hr class="div">
+    <div class="stats-grid">
+      <div class="stat-card clickable-stat" onclick="showDetailModal('requests')"><div class="stat-big" id="s-requests" style="color:var(--gold)">—</div><div class="stat-small">Total Requests ↗</div></div>
+      <div class="stat-card clickable-stat" onclick="showDetailModal('played')"><div class="stat-big" id="s-played" style="color:var(--green)">—</div><div class="stat-small">Songs Played ↗</div></div>
+      <div class="stat-card"><div class="stat-big" id="s-reacts" style="color:#FF8C00">—</div><div class="stat-small">Reactions</div></div>
+      <div class="stat-card"><div class="stat-big" id="s-sessions" style="color:var(--blue)">—</div><div class="stat-small">Sessions</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Request Outcomes</div>
+        <div class="outcomes">
+          <div class="outcome-chip clickable-outcome" onclick="showDetailModal('played')" style="cursor:pointer"><div class="outcome-num" id="o-played" style="color:var(--green)">—</div><div class="outcome-lbl">Played ↗</div></div>
+          <div class="outcome-chip clickable-outcome" onclick="showDetailModal('later')" style="cursor:pointer"><div class="outcome-num" id="o-later" style="color:var(--gold)">—</div><div class="outcome-lbl">Later ↗</div></div>
+          <div class="outcome-chip clickable-outcome" onclick="showDetailModal('passed')" style="cursor:pointer"><div class="outcome-num" id="o-passed" style="color:var(--red2)">—</div><div class="outcome-lbl">Passed ↗</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Crowd Reactions</div>
+        <div class="reactions-row">
+          <div class="reaction-card clickable-reaction" onclick="showDetailModal('fire')" style="cursor:pointer"><div class="reaction-emoji">🔥</div><div class="reaction-count" id="r-fire">—</div><div class="reaction-label">Fire ↗</div></div>
+          <div class="reaction-card clickable-reaction" onclick="showDetailModal('love')" style="cursor:pointer"><div class="reaction-emoji">❤️</div><div class="reaction-count" id="r-love">—</div><div class="reaction-label">Love ↗</div></div>
+          <div class="reaction-card clickable-reaction" onclick="showDetailModal('meh')" style="cursor:pointer"><div class="reaction-emoji">😐</div><div class="reaction-count" id="r-meh">—</div><div class="reaction-label">Meh ↗</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><div class="panel-title">Most Requested Songs</div><div id="top-songs"><div class="loading-msg">Loading...</div></div></div>
+      <div class="panel"><div class="panel-title">Guest Age Breakdown</div><div id="age-chart"><div class="loading-msg">Loading...</div></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><div class="panel-title">Gender Split</div><div id="gender-chart"><div class="loading-msg">Loading...</div></div></div>
+      <div class="panel"><div class="panel-title">Sessions</div><div id="sessions-list"><div class="loading-msg">Loading...</div></div></div>
+    </div>
+  </div>
+
+<div id="detail-modal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title">Detail</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, onSnapshot, doc, query, where }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+const db = getFirestore(initializeApp({apiKey:"AIzaSyAqBkxofG2zyJSpKYFUG4OnNBANjrc-Qok",authDomain:"vtest-c064b.firebaseapp.com",projectId:"vtest-c064b",storageBucket:"vtest-c064b.firebasestorage.app",messagingSenderId:"226302770597",appId:"1:226302770597:web:f44a2180ee937f8a727c4c"}));
+const VENUES = [
+  { id:"hidden-place",    name:"Hidden Place", sub:"Balewadi High Street" },
+  { id:"hidden-place-kp", name:"Hidden Place", sub:"KP" },
+];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let state = { venue:null, year:null, month:null, day:null };
+let cache = {};
+let npUnsub = null;
+let currentData = null;
+
+function watchNP(vid) {
+  if (npUnsub) npUnsub();
+  npUnsub = onSnapshot(doc(db,"nowplaying",vid), snap => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+    document.getElementById("live-song").textContent   = d.song   || "—";
+    document.getElementById("live-artist").textContent = d.artist || "";
+    const r = d.reactions || {};
+    document.getElementById("live-fire").textContent = r.fire||0;
+    document.getElementById("live-love").textContent = r.love||0;
+    document.getElementById("live-meh").textContent  = r.meh||0;
+  });
+}
+try { watchNP(VENUES[0].id); } catch(e) { console.warn("watchNP failed:", e.message); }
+
+// Boot
+window.addEventListener("DOMContentLoaded", () => {
+  render().catch(err => {
+    document.getElementById("drill-nav").innerHTML =
+      `<div style="color:var(--red2);padding:20px 0;font-size:13px">Failed to load: ${err.message}</div>`;
+  });
+});
+
+const toDate = ts => { if(!ts)return null; if(ts.toDate)return ts.toDate(); if(ts.seconds)return new Date(ts.seconds*1000); return new Date(ts); };
+const fmtDate = d => d ? d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}) : "—";
+
+async function fetchData(vid) {
+  if (cache[vid]) return cache[vid];
+  try {
+    const [rq,rc,ss] = await Promise.all([
+      getDocs(query(collection(db,"requests"),  where("venueId","==",vid))),
+      getDocs(query(collection(db,"reactions"), where("venueId","==",vid))),
+      getDocs(query(collection(db,"sessions"),  where("venueId","==",vid))),
+    ]);
+    cache[vid] = {
+      requests:  rq.docs.map(d=>({id:d.id,...d.data()})),
+      reactions: rc.docs.map(d=>d.data()),
+      sessions:  ss.docs.map(d=>({id:d.id,...d.data()})),
+    };
+  } catch(e) {
+    console.warn("fetchData error for", vid, e.message);
+    cache[vid] = { requests:[], reactions:[], sessions:[] };
+  }
+  return cache[vid];
+}
+
+function filter(data, y, m, d) {
+  const ok = (ts) => {
+    const dt = toDate(ts);
+    if (!dt) return false;
+    if (y!==null && dt.getFullYear()!==y) return false;
+    if (m!==null && dt.getMonth()!==m)    return false;
+    if (d!==null && dt.getDate()!==d)     return false;
+    return true;
+  };
+  return {
+    requests:  data.requests.filter(r  => ok(r.timestamp)),
+    reactions: data.reactions.filter(r => ok(r.timestamp)),
+    sessions:  data.sessions.filter(s  => ok(s.createdAt)),
+  };
+}
+
+function showAnalytics(data) {
+  currentData = data;
+  const { requests, reactions, sessions } = data;
+  document.getElementById("analytics-wrap").style.display = "";
+  document.getElementById("s-requests").textContent = requests.length;
+  document.getElementById("s-played").textContent   = requests.filter(r=>r.status==="accepted"||r.status==="nowplaying").length;
+  document.getElementById("s-reacts").textContent   = reactions.length;
+  document.getElementById("s-sessions").textContent = sessions.length;
+  document.getElementById("o-played").textContent   = requests.filter(r=>r.status==="accepted"||r.status==="nowplaying").length;
+  document.getElementById("o-later").textContent    = requests.filter(r=>r.status==="later").length;
+  document.getElementById("o-passed").textContent   = requests.filter(r=>r.status==="passed"||r.status==="alreadyplayed").length;
+  const fire=reactions.filter(r=>r.type==="fire").length, love=reactions.filter(r=>r.type==="love").length, meh=reactions.filter(r=>r.type==="meh").length;
+  document.getElementById("r-fire").textContent=fire;
+  document.getElementById("r-love").textContent=love;
+  document.getElementById("r-meh").textContent=meh;
+  // Top songs
+  const sm={};
+  requests.forEach(r=>{const k=(r.songQuery||"").toLowerCase().trim();if(k)sm[k]=(sm[k]||0)+1;});
+  const ts=Object.entries(sm).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const mx=ts[0]?.[1]||1;
+  document.getElementById("top-songs").innerHTML=ts.length
+    ?ts.map(([s,c],i)=>`<div class="song-row"><div class="song-rank">${i+1}</div><div class="song-name">${s}</div><div class="bar-track"><div class="bar-fill" style="width:${(c/mx*100).toFixed(0)}%"></div></div><div class="song-count">${c}</div></div>`).join("")
+    :"<div class='loading-msg'>No data yet</div>";
+  // Age
+  const am={};
+  requests.forEach(r=>{if(r.guestAge)am[r.guestAge]=(am[r.guestAge]||0)+1;});
+  const ma=Math.max(1,...Object.values(am));
+  document.getElementById("age-chart").innerHTML=Object.keys(am).length
+    ?Object.entries(am).sort().map(([a,c])=>`<div class="bar-row"><div class="bar-label">${a}</div><div class="bar-track"><div class="bar-fill" style="width:${(c/ma*100).toFixed(0)}%;background:var(--blue)"></div></div><div class="bar-val">${c}</div></div>`).join("")
+    :"<div class='loading-msg'>No data yet</div>";
+  // Gender
+  const gm={};
+  requests.forEach(r=>{if(r.guestGender)gm[r.guestGender]=(gm[r.guestGender]||0)+1;});
+  const mg=Math.max(1,...Object.values(gm));
+  document.getElementById("gender-chart").innerHTML=Object.keys(gm).length
+    ?Object.entries(gm).map(([g,c])=>`<div class="bar-row"><div class="bar-label">${g}</div><div class="bar-track"><div class="bar-fill" style="width:${(c/mg*100).toFixed(0)}%;background:var(--green)"></div></div><div class="bar-val">${c}</div></div>`).join("")
+    :"<div class='loading-msg'>No data yet</div>";
+  // Sessions
+  document.getElementById("sessions-list").innerHTML=sessions.length
+    ?[...sessions].sort((a,b)=>(toDate(b.createdAt)||0)-(toDate(a.createdAt)||0)).slice(0,10)
+      .map(s=>{const d=toDate(s.createdAt);const rc=requests.filter(r=>r.sessionId===s.id).length;
+        return`<div class="sess-row"><div class="sess-dj">DJ ${s.djName||"?"}</div><div class="sess-date">${fmtDate(d)}</div><div class="sess-reqs">${rc} req</div>${s.isLive?'<div class="sess-live">LIVE</div>':""}</div>`;
+      }).join("")
+    :"<div class='loading-msg'>No sessions yet</div>";
+}
+
+function renderBC() {
+  const bc=document.getElementById("breadcrumb");
+  const parts=[`<span class="bc-link" onclick="navTo('venues')">Venues</span>`];
+  if(state.venue){
+    const v=VENUES.find(x=>x.id===state.venue);
+    parts.push(`<span>›</span>`);
+    if(state.year!==null){parts.push(`<span class="bc-link" onclick="navTo('years')">${v.name} ${v.sub}</span>`);}
+    else{parts.push(`<span>${v.name} ${v.sub}</span>`);}
+  }
+  if(state.year!==null){
+    parts.push(`<span>›</span>`);
+    if(state.month!==null){parts.push(`<span class="bc-link" onclick="navTo('months')">${state.year}</span>`);}
+    else{parts.push(`<span>${state.year}</span>`);}
+  }
+  if(state.month!==null){
+    parts.push(`<span>›</span>`);
+    if(state.day!==null){parts.push(`<span class="bc-link" onclick="navTo('days')">${MONTHS[state.month]}</span>`);}
+    else{parts.push(`<span>${MONTHS[state.month]}</span>`);}
+  }
+  if(state.day!==null){parts.push(`<span>›</span><span>${state.day} ${MONTHS[state.month]}</span>`);}
+  bc.innerHTML=parts.join(" ");
+}
+
+window.navTo = level => {
+  if(level==="venues"){state={venue:null,year:null,month:null,day:null};}
+  if(level==="years") {state={...state,year:null,month:null,day:null};}
+  if(level==="months"){state={...state,month:null,day:null};}
+  if(level==="days")  {state={...state,day:null};}
+  render();
+};
+window.selectVenue = id => { state={venue:id,year:null,month:null,day:null}; render(); };
+window.selectYear  = y  => { state={...state,year:y,month:null,day:null}; render(); };
+window.selectMonth = m  => { state={...state,month:m,day:null}; render(); };
+window.selectDay   = d  => { state={...state,day:d}; render(); };
+
+async function render() {
+  renderBC();
+  const nav=document.getElementById("drill-nav");
+  document.getElementById("analytics-wrap").style.display="none";
+  nav.innerHTML=`<div class="loading-msg" style="padding:20px 0">Loading...</div>`;
+  try {
+
+  // VENUES
+  if(!state.venue){
+    const cards=await Promise.all(VENUES.map(async v=>{
+      const d=await fetchData(v.id);
+      return`<div class="drill-card" onclick="selectVenue('${v.id}')">
+        <div class="dc-name">${v.name}</div>
+        <div class="dc-sub">${v.sub}</div>
+        <div class="dc-stat">${d.sessions.length} sessions · ${d.requests.length} total requests</div>
+      </div>`;
+    }));
+    nav.innerHTML=`<div class="drill-title">Select a Venue</div><div class="drill-grid venues">${cards.join("")}</div>`;
+    return;
+  }
+
+  watchNP(state.venue);
+  const data=await fetchData(state.venue);
+
+  // YEARS
+  if(state.year===null){
+    const years=[...new Set(data.sessions.map(s=>{const d=toDate(s.createdAt);return d?d.getFullYear():null;}).filter(Boolean))].sort((a,b)=>b-a);
+    if(!years.length){nav.innerHTML=`<div class="drill-title">No sessions recorded yet for this venue</div>`;showAnalytics(filter(data,null,null,null));return;}
+    const cards=years.map(y=>{
+      const ys=data.sessions.filter(s=>{const d=toDate(s.createdAt);return d&&d.getFullYear()===y;});
+      const yr=data.requests.filter(r=>{const d=toDate(r.timestamp);return d&&d.getFullYear()===y;});
+      return`<div class="drill-card" onclick="selectYear(${y})">
+        <div class="dc-name">${y}</div>
+        <div class="dc-stat">${ys.length} sessions · ${yr.length} requests</div>
+      </div>`;
+    });
+    nav.innerHTML=`<div class="drill-title">Select a Year</div><div class="drill-grid years">${cards.join("")}</div>`;
+    showAnalytics(filter(data,null,null,null));
+    return;
+  }
+
+  // MONTHS
+  if(state.month===null){
+    const cards=MONTHS.map((m,mi)=>{
+      const ms=data.sessions.filter(s=>{const d=toDate(s.createdAt);return d&&d.getFullYear()===state.year&&d.getMonth()===mi;});
+      const mr=data.requests.filter(r=>{const d=toDate(r.timestamp);return d&&d.getFullYear()===state.year&&d.getMonth()===mi;});
+      const has=ms.length>0||mr.length>0;
+      return`<div class="drill-card${has?"":" empty"}"${has?` onclick="selectMonth(${mi})"`:""}>
+        <div class="dc-name">${m}</div>
+        <div class="dc-stat">${has?`${ms.length} sess · ${mr.length} req`:"no data"}</div>
+      </div>`;
+    });
+    nav.innerHTML=`<div class="drill-title">${state.year} — Select a Month</div><div class="drill-grid months">${cards.join("")}</div>`;
+    showAnalytics(filter(data,state.year,null,null));
+    return;
+  }
+
+  // DAYS
+  if(state.day===null){
+    const dim=new Date(state.year,state.month+1,0).getDate();
+    const cards=Array.from({length:dim},(_,i)=>i+1).map(day=>{
+      const dr=data.requests.filter(r=>{const d=toDate(r.timestamp);return d&&d.getFullYear()===state.year&&d.getMonth()===state.month&&d.getDate()===day;});
+      const ds=data.sessions.filter(s=>{const d=toDate(s.createdAt);return d&&d.getFullYear()===state.year&&d.getMonth()===state.month&&d.getDate()===day;});
+      const has=dr.length>0||ds.length>0;
+      return`<div class="drill-card day-card${has?"":" empty"}"${has?` onclick="selectDay(${day})"`:""}>
+        <div class="dc-name">${day}</div>
+        <div class="dc-stat">${has?`${dr.length}r`:""}</div>
+      </div>`;
+    });
+    nav.innerHTML=`<div class="drill-title">${MONTHS[state.month]} ${state.year} — Select a Day</div><div class="drill-grid days">${cards.join("")}</div>`;
+    showAnalytics(filter(data,state.year,state.month,null));
+    return;
+  }
+
+  // DAY DETAIL
+  nav.innerHTML="";
+  showAnalytics(filter(data,state.year,state.month,state.day));
+  } catch(err) {
+    nav.innerHTML = `<div class="loading-msg" style="padding:20px 0;color:var(--red2)">Error loading data: ${err.message}</div>`;
+    console.error("render error:", err);
+  }
+}
+
+window.closeModal = () => { document.getElementById("detail-modal").style.display = "none"; };
+
+const fmtDateTime = ts => {
+  const d = toDate(ts);
+  return d ? d.toLocaleDateString("en-IN",{day:"2-digit",month:"short"}) + " " +
+    d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:true}) : "—";
+};
+
+window.showDetailModal = (type) => {
+  if (!currentData) return;
+  const { requests, reactions } = currentData;
+  const modal   = document.getElementById("detail-modal");
+  const title   = document.getElementById("modal-title");
+  const sub     = document.getElementById("modal-sub");
+  const content = document.getElementById("modal-content");
+  const sortByTime = arr => [...arr].sort((a,b) => {
+    const ta = toDate(a.respondedAt||a.timestamp); const tb = toDate(b.respondedAt||b.timestamp);
+    return (tb||0)-(ta||0);
+  });
+
+  if (type==="requests") {
+    title.textContent = "All Requests";
+    sub.textContent   = requests.length + " requests in this period";
+    const statusMap = {accepted:"badge-accepted",nowplaying:"badge-accepted",later:"badge-later",passed:"badge-passed",alreadyplayed:"badge-passed"};
+    content.innerHTML = sortByTime(requests).map(r => `<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?`<span class="detail-badge badge-table">T${r.tableNumber}</span> `:""}${r.guestAge||""} ${r.guestGender||""}</div>
+      </div>
+      <span class="detail-badge ${statusMap[r.status]||"badge-later"}">${r.status==="nowplaying"?"played":r.status||"pending"}</span>
+    </div>`).join("") || "<div class='loading-msg'>No requests</div>";
+  }
+  else if (type==="played") {
+    const played = requests.filter(r=>r.status==="accepted"||r.status==="nowplaying");
+    title.textContent = "Songs Played";
+    sub.textContent   = played.length + " songs accepted";
+    content.innerHTML = sortByTime(played).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.respondedAt||r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""} ${r.guestAge||""} ${r.guestGender||""}</div>
+      </div>
+      <span class="detail-badge badge-accepted">played</span>
+    </div>`).join("") || "<div class='loading-msg'>No songs played yet</div>";
+  }
+  else if (type==="later") {
+    const later = requests.filter(r=>r.status==="later");
+    title.textContent = "Later Queue";
+    sub.textContent   = later.length + " requests put on hold";
+    content.innerHTML = sortByTime(later).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""}</div>
+      </div>
+      <span class="detail-badge badge-later">later</span>
+    </div>`).join("") || "<div class='loading-msg'>None put on later</div>";
+  }
+  else if (type==="passed") {
+    const passed = requests.filter(r=>r.status==="passed"||r.status==="alreadyplayed");
+    title.textContent = "Passed / Already Played";
+    sub.textContent   = passed.length + " requests passed";
+    content.innerHTML = sortByTime(passed).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""}</div>
+      </div>
+      <span class="detail-badge badge-passed">${r.status==="alreadyplayed"?"already played":"passed"}</span>
+    </div>`).join("") || "<div class='loading-msg'>None passed</div>";
+  }
+  else if (type==="fire"||type==="love"||type==="meh") {
+    const emoji = {fire:"🔥",love:"❤️",meh:"😐"}[type];
+    const filtered = reactions.filter(r=>r.type===type);
+    title.textContent = emoji + " Reactions";
+    sub.textContent   = filtered.length + " " + type + " reactions";
+    content.innerHTML = sortByTime(filtered).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songName||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""} ${r.guestAge||""} ${r.guestGender||""}</div>
+      </div>
+      <span class="detail-badge badge-table">${emoji}</span>
+    </div>`).join("") || "<div class='loading-msg'>No reactions yet</div>";
+  }
+  modal.style.display = "flex";
+};
+</script>
+</body>
+</html>

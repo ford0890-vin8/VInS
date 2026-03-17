@@ -325,8 +325,8 @@ html, body {
   <div id="holding">
     <div class="hold-name">Hidden Place</div>
     <div class="hold-tag">The Hang-Out · Balewadi High Street</div>
-    <div class="hold-msg">DJ starts soon 🎸</div>
-    <div class="hold-sub">Requests open when the session goes live.</div>
+    <div class="hold-msg" id="hold-msg-text">DJ starts soon 🎸</div>
+    <div class="hold-sub" id="hold-sub-text">Requests open when the session goes live.</div>
     <button class="hold-sync" id="hold-sync">↻ DJ already live? Tap here</button>
   </div>
 
@@ -334,9 +334,9 @@ html, body {
   <div id="ended" style="display:none">
     <div class="hold-name">Hidden Place</div>
     <div class="hold-tag">The Hang-Out · Balewadi High Street</div>
-    <div style="font-size:40px;margin:16px 0">🎸</div>
-    <div class="hold-msg">That's a wrap for tonight!</div>
-    <div class="hold-sub" style="margin-top:8px;line-height:1.8">Thanks for being part of the night.<br>See you next time at Hidden Place.</div>
+    <div style="font-size:40px;margin:16px 0" id="ended-icon">🎸</div>
+    <div class="hold-msg" id="ended-msg">That's a wrap for tonight!</div>
+    <div class="hold-sub" id="ended-sub" style="margin-top:8px;line-height:1.8">Thanks for being part of the night.<br>See you next time at Hidden Place.</div>
   </div>
 
   <!-- LIVE APP -->
@@ -677,7 +677,7 @@ function watchForResponse(firebaseId, cardId, song) {
     }
   }, err => console.warn("Watch error:", err.message));
 
-  // 30s fallback — show "pending" style waiting message, never "reviewing"
+  // 30s fallback — show friendly waiting message
   setTimeout(() => {
     const el = document.getElementById(cardId);
     if (el && el.dataset.status === "loading") {
@@ -685,6 +685,20 @@ function watchForResponse(firebaseId, cardId, song) {
       refreshAnotherBtn();
     }
   }, 30000);
+
+  // 2 min nudge — suggest matching tempo if still not responded
+  setTimeout(() => {
+    const el = document.getElementById(cardId);
+    if (el && (el.dataset.status === "loading" || el.dataset.status === "waiting")) {
+      const nowSongEl = document.getElementById("np-song");
+      const nowPlaying = nowSongEl ? nowSongEl.textContent : "";
+      const hint = nowPlaying && nowPlaying !== "Waiting for DJ..."
+        ? `Songs close to "${nowPlaying}" tend to get picked faster tonight 🎸`
+        : "Songs that match the current tempo tend to get picked faster 🎸";
+      renderCard(cardId, song, "waiting", null, hint);
+      refreshAnotherBtn();
+    }
+  }, 120000);
 }
 
 // ── Card rendering ──
@@ -698,9 +712,34 @@ function renderCard(id, song, status, queue, message) {
   }
   el.dataset.status = status;
   el.innerHTML = buildCardHTML(song, status, queue, message);
+  if (status === "nowplaying") {
+    el.classList.add("nowplaying-anim");
+    launchSparks();
+  }
+}
+
+function launchSparks() {
+  const sparks = ["⚡","🔥","🎸","⚡","🤘","🔥","⚡"];
+  const wrap = document.createElement("div");
+  wrap.className = "spark-wrap";
+  for (let i = 0; i < 12; i++) {
+    const s = document.createElement("div");
+    s.className = "spark";
+    s.textContent = sparks[Math.floor(Math.random() * sparks.length)];
+    s.style.left = Math.random() * 100 + "vw";
+    s.style.top  = (60 + Math.random() * 30) + "vh";
+    s.style.animationDelay = (Math.random() * 0.5) + "s";
+    s.style.fontSize = (16 + Math.random() * 16) + "px";
+    wrap.appendChild(s);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(() => wrap.remove(), 1500);
 }
 
 function buildCardHTML(song, status, queue, message) {
+  // Show chat bubble if DJ sent a real message (not a system code)
+  const systemMessages = ["alreadyplayed", "Not quite tonight's vibe — try another!", "I'll work it in when the timing is right."];
+  const showChat = message && !systemMessages.includes(message);
   if (status === "loading") {
     return `<div class="loading-inner">
       <div class="vinyl"></div>
@@ -768,6 +807,16 @@ function buildCardHTML(song, status, queue, message) {
          <span style="font-family:'Abril Fatface',serif;font-size:24px;color:#4CAF50;line-height:1">${queue}</span>
          <span style="font-size:11px;color:rgba(76,175,80,0.75)">songs away</span>
        </div>` : "";
+
+  // Show DJ chat message if it's a real message (not a system code)
+  const systemCodes = ["alreadyplayed", "Not quite tonight's vibe — try another!", "I'll work it in when the timing is right."];
+  const djChatMsg = (message && !systemCodes.includes(message)) ? message : null;
+  const chatBlock = djChatMsg ? `
+    <div class="chat-bubble">
+      <div class="chat-from">DJ Vinit says:</div>
+      ${esc(djChatMsg)}
+    </div>` : "";
+
   return `<div style="background:${s.bg};border-radius:8px;padding:10px;border:1px solid ${s.border}">
     <div class="card-head">
       <div class="card-icon" style="color:${s.color}">${s.icon}</div>
@@ -778,7 +827,8 @@ function buildCardHTML(song, status, queue, message) {
     </div>
     <div class="card-song">${esc(song)}</div>
     ${queueBlock}
-    ${msg ? `<div class="card-msg">${msg}</div>` : ""}
+    ${msg && !djChatMsg ? `<div class="card-msg">${msg}</div>` : ""}
+    ${chatBlock}
   </div>`;
 }
 
@@ -803,7 +853,60 @@ function showApp() {
   restoreExistingCards();
 }
 
+function getSmartHoldingMsg() {
+  const h = new Date().getHours();
+  if (h >= 0 && h < 5) return {
+    msg: "Still up at this hour? 🌙",
+    sub: "The DJ's catching some sleep. Hidden Place wakes up after 7PM."
+  };
+  if (h >= 5 && h < 12) return {
+    msg: "Good Morning! 🌅",
+    sub: "Too early for requests — the DJ usually fires up around 7:30PM."
+  };
+  if (h >= 12 && h < 17) return {
+    msg: "Afternoon vibes... 🎸",
+    sub: "Session starts in the evening. Come back around 7:30PM!"
+  };
+  if (h >= 17 && h < 19) return {
+    msg: "Almost time! 🎸",
+    sub: "DJ starts at 7:30PM — grab your seat, requests open soon."
+  };
+  if (h >= 19 && h < 23) return {
+    msg: "DJ Starts Soon 🎸",
+    sub: "Requests open when the session goes live."
+  };
+  // 11PM - midnight
+  return {
+    msg: "Night's winding down... 🌙",
+    sub: "If the DJ's not live yet, they might be done for tonight."
+  };
+}
+
+function getSmartEndedMsg() {
+  const h = new Date().getHours();
+  if (h >= 0 && h < 5) return {
+    icon: "🌙",
+    msg: "Missing Hidden Place already? 😄",
+    sub: "We know, can't wait for tomorrow either!
+See you back here after 7PM."
+  };
+  if (h >= 5 && h < 12) return {
+    icon: "☕",
+    msg: "Still thinking about last night?",
+    sub: "That was a good one. Come back tonight for more."
+  };
+  return {
+    icon: "🎸",
+    msg: "That's a wrap for tonight!",
+    sub: "Thanks for being part of the night.
+See you next time at Hidden Place."
+  };
+}
+
 function showHolding() {
+  const { msg, sub } = getSmartHoldingMsg();
+  document.getElementById("hold-msg-text").textContent = msg;
+  document.getElementById("hold-sub-text").textContent = sub;
   document.getElementById("holding").style.display = "";
   document.getElementById("ended").style.display   = "none";
   document.getElementById("app").style.display     = "none";
@@ -811,6 +914,11 @@ function showHolding() {
 }
 
 function showEnded() {
+  const { icon, msg, sub } = getSmartEndedMsg();
+  document.getElementById("ended-icon").textContent = icon;
+  document.getElementById("ended-msg").textContent  = msg;
+  document.getElementById("ended-sub").innerHTML    = sub.replace(/
+/g, "<br>");
   document.getElementById("holding").style.display = "none";
   document.getElementById("ended").style.display   = "";
   document.getElementById("app").style.display     = "none";

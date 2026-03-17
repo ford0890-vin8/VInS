@@ -193,6 +193,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .act-review { background: rgba(91,164,207,0.07);  border-color: rgba(91,164,207,0.22);  color: var(--blue);  }
 .act-pass   { background: rgba(192,57,43,0.07);   border-color: rgba(192,57,43,0.17);   color: var(--red2);  }
 .act-played { background: rgba(150,100,200,0.07); border-color: rgba(150,100,200,0.25); color: rgba(180,140,220,0.9); }
+.q-chat-wrap  { display: flex; gap: 5px; margin-top: 7px; }
+.q-chat-input { flex:1; background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: 5px; color: var(--fg); font-size: 11px; padding: 5px 8px; outline: none; font-family: "Courier Prime", monospace; }
+.q-chat-input:focus { border-color: rgba(232,160,32,0.4); }
+.q-chat-send  { padding: 5px 9px; background: rgba(232,160,32,0.1); border: 1px solid rgba(232,160,32,0.3); border-radius: 5px; color: var(--gold); font-size: 11px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+.q-chat-send:hover { background: rgba(232,160,32,0.22); }
 .count-badge { background: rgba(232,160,32,0.2); border: 1px solid rgba(232,160,32,0.4); color: #E8A020; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
 
 /* Sidebar */
@@ -322,6 +327,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="sidebar">
       <div class="sidebar-title">Tonight's Playlist</div>
       <div id="history-list"></div>
+      <div class="sidebar-title" style="margin-top:16px">Skipped / Later</div>
+      <div id="skipped-list"></div>
     </div>
   </div>
 </div>
@@ -540,16 +547,45 @@ function renderQueue() {
         <button class="q-action act-later"   data-id="${r.id}">⏱ Later</button>
         <button class="q-action act-played"  data-id="${r.id}">↩ Already Played</button>
         <button class="q-action act-pass"    data-id="${r.id}">✕ Pass</button>
+        <button class="q-action act-suggest" data-id="${r.id}" style="font-size:10px">💡 Suggest</button>
+      </div>
+      <div class="q-chat-wrap">
+        <input class="q-chat-input" placeholder="Message this guest..." maxlength="120"/>
+        <button class="q-chat-send" data-id="${r.id}">Send ↗</button>
       </div>`;
 
     card.querySelector(".act-play").addEventListener("click",   () => respond(r, "accepted"));
     card.querySelector(".act-later").addEventListener("click",  () => respond(r, "later"));
     card.querySelector(".act-played").addEventListener("click", () => respondAlreadyPlayed(r));
     card.querySelector(".act-pass").addEventListener("click",   () => respond(r, "passed"));
-    // No Review button — replaced by Already Played
+    card.querySelector(".act-suggest").addEventListener("click", () => {
+      const nowPlaying = document.getElementById("np-title").textContent || "what's playing";
+      const msg = `Not quite the tempo right now — try something closer to "${nowPlaying}" and I'll get to it! 🎸`;
+      sendChatToGuest(r.id, msg);
+      toast("💡 Tempo hint sent to guest");
+    });
+    card.querySelector(".q-chat-send").addEventListener("click", () => {
+      const input = card.querySelector(".q-chat-input");
+      const msg   = input.value.trim();
+      if (!msg) return;
+      sendChatToGuest(r.id, msg);
+      input.value = "";
+      toast("💬 Message sent to guest");
+    });
+    card.querySelector(".q-chat-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") card.querySelector(".q-chat-send").click();
+    });
 
     list.appendChild(card);
   });
+}
+
+// ── Send chat message to guest ──
+async function sendChatToGuest(requestId, message) {
+  await updateDoc(doc(db, "requests", requestId), {
+    djMessage: message,
+    chatAt: serverTimestamp()
+  }).catch(err => console.error("chat:", err));
 }
 
 // ── Already Played — mark as passed, give guest +1 request back ──
@@ -600,6 +636,12 @@ async function respond(r, status) {
     passed:   pick(["✕ Passed — guest notified","✕ Not tonight's vibe","✕ Respectfully declined 😄","✕ Hard pass — they are told","✕ Not this one tonight"])
   };
   toast(toasts[status] || "Done");
+
+  // Keep skipped/later requests in sidebar so nothing is lost
+  if (status === "passed" || status === "later") {
+    const skippedTag = status === "later" ? "Later" : "Skipped";
+    addSkippedRow({ song: title, time: nowTime(), tag: skippedTag });
+  }
 }
 
 // ── Set Now Playing manually ──
@@ -609,22 +651,61 @@ document.getElementById("np-input").addEventListener("keydown", e => { if (e.key
 async function setNowPlaying() {
   const song = document.getElementById("np-input").value.trim();
   if (!song) { toast("Enter a song name"); return; }
+
+  const songLower = song.toLowerCase().trim();
+
+  // Check if this song matches any accepted request — auto-flip to nowplaying + cheer
+  const matchedIds = queue
+    .filter(r => {
+      const q = (r.songQuery || "").toLowerCase().trim();
+      return r.status === "accepted" && (
+        songLower === q ||
+        songLower.includes(q) || q.includes(songLower) ||
+        q.split(" ").filter(w => w.length > 3).some(w => songLower.includes(w))
+      );
+    })
+    .map(r => r.id);
+
+  // Write to nowplaying — cheer:true if matched a request
   await setDoc(doc(db, "nowplaying", venue), {
     song, artist: "", duration: null,
     startedAt: serverTimestamp(), sessionId: sid, djName,
+    cheer: matchedIds.length > 0,
     reactions: { fire: 0, love: 0, meh: 0 }
   }).catch(console.error);
+
+  // Mark matched requests as nowplaying in Firestore
+  for (const id of matchedIds) {
+    await updateDoc(doc(db, "requests", id), {
+      status: "nowplaying",
+      respondedAt: serverTimestamp()
+    }).catch(() => {});
+  }
+
+  // Save to Firestore for Owner dashboard analytics
+  await addDoc(collection(db, "playedSongs"), {
+    venueId: venue, sessionId: sid, djName,
+    song, playedAt: serverTimestamp(),
+    wasRequested: matchedIds.length > 0,
+    date: new Date().toISOString().split("T")[0]
+  }).catch(() => {});
+
   document.getElementById("np-title").textContent = song;
   document.getElementById("np-meta").textContent  = "";
   document.getElementById("np-input").value       = "";
-  addHistoryRow(null, { song, artist: "", time: nowTime(), tag: "DJ Pick" }, true);
+
+  // Determine tag — requested or DJ pick
+  const tag = matchedIds.length > 0 ? "Requested" : "DJ Pick";
+  addHistoryRow(null, { song, artist: "", time: nowTime(), tag }, true);
+
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   const npToasts = [
-    `▶ Now playing: "${song}" — let's go!`,
+    `▶ Now playing: "${song}" — lets go!`,
     `▶ Dropping "${song}" right now 🔥`,
-    `▶ "${song}" is on — floor time!`,
+    `▶ "${song}" is on!`,
     `▶ Playing "${song}" — turn it up!`,
   ];
-  toast(npToasts[Math.floor(Math.random() * npToasts.length)]);
+  toast(pick(npToasts));
 }
 
 // ── Clear All ──
@@ -638,11 +719,27 @@ document.getElementById("clear-btn").addEventListener("click", async () => {
   toast("Queue cleared");
 });
 
+function addSkippedRow(item) {
+  const el = document.createElement("div");
+  el.className = "history-row";
+  el.innerHTML = `
+    <div class="history-num" style="color:var(--muted)">—</div>
+    <div style="flex:1;min-width:0">
+      <div class="history-song" style="opacity:0.5">${esc(item.song)}</div>
+      <div class="history-meta">${item.time}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+      <span class="history-tag ${item.tag === 'Later' ? '' : 'tag-req'}" style="${item.tag === 'Later' ? 'background:rgba(232,160,32,0.09);color:rgba(232,160,32,0.7);border:1px solid rgba(232,160,32,0.2)' : ''}">${item.tag}</span>
+    </div>`;
+  document.getElementById("skipped-list").prepend(el);
+}
+
 // ── History ──
 function addHistoryRow(num, item, saveToStorage) {
   if (saveToStorage) {
     played++;
     document.getElementById("stat-played").textContent = played;
+    // Save to localStorage for session persistence
     const k = "vins_dj_hist_" + sid;
     const h = JSON.parse(localStorage.getItem(k) || "[]");
     h.push(item);

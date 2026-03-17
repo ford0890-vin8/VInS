@@ -777,7 +777,7 @@ function buildCardHTML(song, status, queue, message) {
       "Hold tight, it is coming! 🎸",
       "In the queue — stay close to the floor!",
       "DJ is got you. Two songs away maybe.",
-      "Consider it done. Don't wander off! 🤘",
+      "Consider it done. Do not wander off! 🤘",
       "Locked in. The night just got better.",
       "Said yes. Now let it build...",
     ]);
@@ -800,7 +800,7 @@ function buildCardHTML(song, status, queue, message) {
     if (status === "passed") return randomMsg([
       "Not tonights energy, but nice try! 😄",
       "The floor said no. The DJ agreed.",
-      "Couldn't fit it in — try something else!",
+      "Could not fit it in — try something else!",
       "This one stays in the vault tonight.",
       "Bold choice. Too bold. Try again! 🙈",
       "The DJ respects the request. Still a no though.",
@@ -815,7 +815,7 @@ function buildCardHTML(song, status, queue, message) {
        </div>` : "";
 
   // Show DJ chat message if it is a real message (not a system code)
-  const systemCodes = ["alreadyplayed", "Not quite tonights vibe — try another!", "I'll work it in when the timing is right."];
+  const systemCodes = ["alreadyplayed", "Not quite tonight vibe — try another!", "Will work it in when the timing is right."];
   const djChatMsg = (message && !systemCodes.includes(message)) ? message : null;
   const chatBlock = djChatMsg ? `
     <div class="chat-bubble">

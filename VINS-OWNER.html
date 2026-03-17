@@ -189,7 +189,6 @@ let currentData = null;
 
 async function watchNP(vid) {
   if (npUnsub) npUnsub();
-  // Check if there is a currently LIVE session before showing Now Playing
   npUnsub = onSnapshot(doc(db,"nowplaying",vid), async snap => {
     if (!snap.exists()) {
       document.getElementById("live-song").textContent = "No active session";
@@ -197,11 +196,11 @@ async function watchNP(vid) {
       return;
     }
     const d = snap.data();
-    // Verify the session is still live
     if (d.sessionId) {
-      const sessDocs = await getDocs(query(collection(db,"sessions"), where("venueId","==",vid), where("isLive","==",true)));
-      const isLive = sessDocs.docs.some(s => s.id === d.sessionId);
-      if (!isLive) {
+      // Check live session client-side — no composite index needed
+      const sessDocs = await getDocs(query(collection(db,"sessions"), where("venueId","==",vid)));
+      const liveSession = sessDocs.docs.find(s => s.id === d.sessionId && s.data().isLive === true);
+      if (!liveSession) {
         document.getElementById("live-song").textContent = "DJ goes live in the evening";
         document.getElementById("live-artist").textContent = "";
         document.getElementById("live-fire").textContent = "0";
@@ -340,6 +339,7 @@ async function render() {
   const nav=document.getElementById("drill-nav");
   document.getElementById("analytics-wrap").style.display="none";
   nav.innerHTML=`<div class="loading-msg" style="padding:20px 0">Loading...</div>`;
+  try {
 
   // VENUES
   if(!state.venue){
@@ -411,6 +411,10 @@ async function render() {
   // DAY DETAIL
   nav.innerHTML="";
   showAnalytics(filter(data,state.year,state.month,state.day));
+  } catch(err) {
+    nav.innerHTML = `<div class="loading-msg" style="padding:20px 0;color:var(--red2)">Error loading data: ${err.message}</div>`;
+    console.error("render error:", err);
+  }
 }
 
 render();

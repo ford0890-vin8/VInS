@@ -488,6 +488,16 @@ function startFirebase() {
     snap => {
       if (!snap.exists()) return;
       const d = snap.data();
+
+      // Only show Now Playing if it belongs to the CURRENT session
+      // Prevents last night's song showing when guest returns
+      if (d.sessionId && d.sessionId !== sid) {
+        document.getElementById("np-song").textContent   = "Waiting for DJ...";
+        document.getElementById("np-artist").textContent = "";
+        document.getElementById("ticker-song").textContent = "—";
+        return;
+      }
+
       const prevSong = nowSong;
       nowSong = d.song || "";
       document.getElementById("np-song").textContent   = d.song   || "Waiting for DJ...";
@@ -501,7 +511,6 @@ function startFirebase() {
       document.getElementById("rc-meh").textContent  = r.meh  || 0;
 
       // Cheer ONLY fires when DJ clicks the ▶ gold button — cheer:true flag set by DJ
-      // Typing in Set Now Playing just updates the bar, no cheer
       if (d.cheer && d.song) {
         const reqs = loadRequests();
         reqs.forEach(r => {
@@ -737,9 +746,6 @@ function launchSparks() {
 }
 
 function buildCardHTML(song, status, queue, message) {
-  // Show chat bubble if DJ sent a real message (not a system code)
-  const systemMessages = ["alreadyplayed", "Not quite tonight's vibe — try another!", "I'll work it in when the timing is right."];
-  const showChat = message && !systemMessages.includes(message);
   if (status === "loading") {
     return `<div class="loading-inner">
       <div class="vinyl"></div>
@@ -752,17 +758,17 @@ function buildCardHTML(song, status, queue, message) {
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const styles = {
     accepted: { icon: "&#x2713;", color: "#4CAF50", bg: "rgba(76,175,80,0.08)",   border: "rgba(76,175,80,0.22)",
-      title: pick(["Request Accepted!","You're On The List!","Consider It Done!","The DJ Said Yes!","Locked In!","You're In! 🎸","Green Light! 🟢","DJ's Got You!","On The List!","Request Received & Approved!"]),
-      sub:   pick(["Coming up in a couple songs","Stay close — it's happening","Won't be long now","The DJ's got a plan","Patience pays off tonight","Keep an ear out","Your song is in the pipeline","Good things coming your way"]) },
+      title: pick(["Request Accepted!","You Are On The List!","Consider It Done!","The DJ Said Yes!","Locked In!","You Are In! 🎸","Green Light! 🟢","DJ Has Got You!","On The List!","Request Received & Approved!"]),
+      sub:   pick(["Coming up in a couple songs","Stay close — happening soon","Will not be long now","The DJ has a plan","Patience pays off tonight","Keep an ear out","Your song is in the pipeline","Good things coming your way"]) },
     later:    { icon: "&#x23F1;", color: "#E8A020", bg: "rgba(232,160,32,0.08)", border: "rgba(232,160,32,0.22)",
-      title: pick(["Not Now, Maybe Later","No Promises Though...","Perhaps. No Guarantees.","We'll See How The Night Goes","Hold That Thought...","Not Yet, Maybe Eventually","The DJ Will Try. Maybe.","Could Happen. Could Not."]),
-      sub:   pick(["Not a yes, not a no — just not now","The DJ'll try if the vibe allows","Don't hold your breath, but don't give up","Maybe later, maybe not — that's music","Depends how the night goes","The DJ keeps no promises","Your song is on the maybe list","No guarantees in this game"]) },
+      title: pick(["Not Now, Maybe Later","No Promises Though...","Perhaps. No Guarantees.","We Will See How The Night Goes","Hold That Thought...","Not Yet, Maybe Eventually","The DJ Will Try. Maybe.","Could Happen. Could Not."]),
+      sub:   pick(["Not a yes, not a no — just not now","The DJ will try if the vibe allows","Do not hold your breath, but do not give up","Maybe later, maybe not — that is music","Depends how the night goes","The DJ keeps no promises","Your song is on the maybe list","No guarantees in this game"]) },
     reviewing:{ icon: "&#x1F50D;", color: "#7BC8F5", bg: "rgba(91,164,207,0.08)", border: "rgba(91,164,207,0.22)",
       title: pick(["Under Review...","DJ Is Thinking...","Interesting Choice...","Hold That Thought"]),
       sub:   pick(["DJ is checking the vibe","Pulling up the track","This one needs consideration","The jury is still out"]) },
     passed:   { icon: "&#x21BA;", color: "#E74C3C", bg: "rgba(192,57,43,0.08)",  border: "rgba(192,57,43,0.22)",
-      title: pick(["Not Tonight!","Nice Try Though!","Maybe Next Time","Not This One","The Answer Is No... For Now","The DJ Respectfully Declines","Ooh, Close But No","Not Quite Right Tonight"]),
-      sub:   pick(["Not quite tonight's energy","The vibe said otherwise","Try a different track!","The DJ sends love, still a no","The night has other plans","Every no is a new chance to try","Give it another shot!","Try something else — you've got good taste"]) },
+      title: pick(["Not Tonight!","Nice Try Though!","Maybe Next Time","Not This One","The Answer Is No For Now","The DJ Respectfully Declines","Ooh, Close But No","Not Quite Right Tonight"]),
+      sub:   pick(["Not quite tonight's energy","The vibe said otherwise","Try a different track!","The DJ sends love, still a no","The night has other plans","Every no is a new chance to try","Give it another shot!","Try something else — great taste though"]) },
   };
   const s   = styles[status] || styles.reviewing;
   const randomMsg = (arr) => arr[Math.floor(Math.random() * arr.length)];

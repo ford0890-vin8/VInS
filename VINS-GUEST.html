@@ -921,8 +921,7 @@ function showEnded() {
   const { icon, msg, sub } = getSmartEndedMsg();
   document.getElementById("ended-icon").textContent = icon;
   document.getElementById("ended-msg").textContent  = msg;
-  document.getElementById("ended-sub").innerHTML    = sub.replace(/
-/g, "<br>");
+  document.getElementById("ended-sub").innerHTML    = sub.replace(/\n/g, "<br>");
   document.getElementById("holding").style.display = "none";
   document.getElementById("ended").style.display   = "";
   document.getElementById("app").style.display     = "none";

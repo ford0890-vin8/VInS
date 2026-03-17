@@ -490,7 +490,7 @@ function startFirebase() {
       const d = snap.data();
 
       // Only show Now Playing if it belongs to the CURRENT session
-      // Prevents last night's song showing when guest returns
+      // Prevents last nights song showing when guest returns
       if (d.sessionId && d.sessionId !== sid) {
         document.getElementById("np-song").textContent   = "Waiting for DJ...";
         document.getElementById("np-artist").textContent = "";
@@ -768,29 +768,29 @@ function buildCardHTML(song, status, queue, message) {
       sub:   pick(["DJ is checking the vibe","Pulling up the track","This one needs consideration","The jury is still out"]) },
     passed:   { icon: "&#x21BA;", color: "#E74C3C", bg: "rgba(192,57,43,0.08)",  border: "rgba(192,57,43,0.22)",
       title: pick(["Not Tonight!","Nice Try Though!","Maybe Next Time","Not This One","The Answer Is No For Now","The DJ Respectfully Declines","Ooh, Close But No","Not Quite Right Tonight"]),
-      sub:   pick(["Not quite tonight's energy","The vibe said otherwise","Try a different track!","The DJ sends love, still a no","The night has other plans","Every no is a new chance to try","Give it another shot!","Try something else — great taste though"]) },
+      sub:   pick(["Not quite tonights energy","The vibe said otherwise","Try a different track!","The DJ sends love, still a no","The night has other plans","Every no is a new chance to try","Give it another shot!","Try something else — great taste though"]) },
   };
   const s   = styles[status] || styles.reviewing;
   const randomMsg = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const djMsg = message || (() => {
     if (status === "accepted") return randomMsg([
-      "Hold tight, it's coming! 🎸",
+      "Hold tight, it is coming! 🎸",
       "In the queue — stay close to the floor!",
-      "DJ's got you. Two songs away maybe.",
+      "DJ is got you. Two songs away maybe.",
       "Consider it done. Don't wander off! 🤘",
       "Locked in. The night just got better.",
       "Said yes. Now let it build...",
     ]);
     if (status === "later") return randomMsg([
-      "Not now, but don't lose hope yet.",
+      "Not now, but do not lose hope yet.",
       "Timing is everything — your moment will come.",
       "Saving this one for when the vibe is right.",
-      "DJ's playing chess, not checkers. Patience! ♟",
+      "DJ is playing chess, not checkers. Patience! ♟",
       "Bookmarked. The night is young.",
       "Later means later, not never. Stick around!",
     ]);
     if (status === "reviewing") return randomMsg([
-      "DJ's giving it a hard listen... 🎧",
+      "DJ is giving it a hard listen... 🎧",
       "Pulling up the track right now.",
       "Interesting choice. Let me think...",
       "Hmm. The DJ is intrigued.",
@@ -798,7 +798,7 @@ function buildCardHTML(song, status, queue, message) {
       "Checking the vibe compatibility...",
     ]);
     if (status === "passed") return randomMsg([
-      "Not tonight's energy, but nice try! 😄",
+      "Not tonights energy, but nice try! 😄",
       "The floor said no. The DJ agreed.",
       "Couldn't fit it in — try something else!",
       "This one stays in the vault tonight.",
@@ -814,8 +814,8 @@ function buildCardHTML(song, status, queue, message) {
          <span style="font-size:11px;color:rgba(76,175,80,0.75)">songs away</span>
        </div>` : "";
 
-  // Show DJ chat message if it's a real message (not a system code)
-  const systemCodes = ["alreadyplayed", "Not quite tonight's vibe — try another!", "I'll work it in when the timing is right."];
+  // Show DJ chat message if it is a real message (not a system code)
+  const systemCodes = ["alreadyplayed", "Not quite tonights vibe — try another!", "I'll work it in when the timing is right."];
   const djChatMsg = (message && !systemCodes.includes(message)) ? message : null;
   const chatBlock = djChatMsg ? `
     <div class="chat-bubble">
@@ -903,8 +903,7 @@ function getSmartEndedMsg() {
   return {
     icon: "🎸",
     msg: "Thats a wrap for tonight!",
-    sub: "Thanks for being part of the night.
-See you next time at Hidden Place."
+    sub: "Thanks for being part of the night. See you next time at Hidden Place."
   };
 }
 

@@ -79,6 +79,32 @@ hr.div { border:none; border-top:1px solid var(--b1); margin:20px 0; }
 .sess-reqs { background:rgba(232,160,32,0.1); border:1px solid rgba(232,160,32,0.2); border-radius:4px; padding:2px 7px; font-size:11px; color:var(--gold); }
 .sess-live { background:rgba(76,175,80,0.1); border:1px solid rgba(76,175,80,0.25); border-radius:4px; padding:2px 7px; font-size:10px; color:var(--green); }
 @media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.drill-grid.months{grid-template-columns:repeat(3,1fr)}.drill-grid.days{grid-template-columns:repeat(5,1fr)}}
+
+/* ── Detail Modal ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+.modal-box { background:var(--card); border:1px solid var(--b2); border-radius:14px; width:100%; max-width:680px; padding:20px; position:relative; }
+.modal-close { position:absolute; top:14px; right:16px; background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; }
+.modal-close:hover { color:var(--text); }
+.modal-title { font-family:"Abril Fatface",serif; font-size:20px; color:var(--gold); margin-bottom:4px; }
+.modal-sub { font-size:11px; color:var(--muted); font-family:"Courier Prime",monospace; margin-bottom:16px; }
+.detail-row { display:flex; align-items:flex-start; gap:12px; padding:8px 0; border-bottom:1px solid var(--b1); font-size:13px; }
+.detail-row:last-child { border-bottom:none; }
+.detail-time { font-family:"Courier Prime",monospace; font-size:11px; color:var(--gold); min-width:65px; padding-top:1px; }
+.detail-main { flex:1; }
+.detail-song { font-weight:600; font-size:14px; }
+.detail-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+.detail-badge { font-size:10px; padding:2px 7px; border-radius:10px; font-weight:600; }
+.badge-accepted { background:rgba(76,175,80,0.12); color:var(--green); border:1px solid rgba(76,175,80,0.25); }
+.badge-later    { background:rgba(232,160,32,0.12); color:var(--gold);  border:1px solid rgba(232,160,32,0.25); }
+.badge-passed   { background:rgba(192,57,43,0.12);  color:var(--red2);  border:1px solid rgba(192,57,43,0.25); }
+.badge-table    { background:rgba(91,164,207,0.12); color:var(--blue);  border:1px solid rgba(91,164,207,0.25); }
+.clickable-stat { cursor:pointer; transition:transform 0.1s; }
+.clickable-stat:hover .stat-big { text-decoration:underline; }
+.clickable-stat:hover { transform:scale(1.03); }
+.clickable-outcome { cursor:pointer; transition:all 0.1s; }
+.clickable-outcome:hover { border-color:rgba(232,160,32,0.3) !important; background:rgba(232,160,32,0.04) !important; }
+.clickable-reaction { cursor:pointer; transition:all 0.1s; }
+.clickable-reaction:hover { border-color:rgba(232,160,32,0.3) !important; }
 </style>
 </head>
 <body>
@@ -104,8 +130,8 @@ hr.div { border:none; border-top:1px solid var(--b1); margin:20px 0; }
   <div id="analytics-wrap" style="display:none">
     <hr class="div">
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-big" id="s-requests" style="color:var(--gold)">—</div><div class="stat-small">Total Requests</div></div>
-      <div class="stat-card"><div class="stat-big" id="s-played" style="color:var(--green)">—</div><div class="stat-small">Songs Played</div></div>
+      <div class="stat-card clickable-stat" onclick="showDetailModal('requests')"><div class="stat-big" id="s-requests" style="color:var(--gold)">—</div><div class="stat-small">Total Requests ↗</div></div>
+      <div class="stat-card clickable-stat" onclick="showDetailModal('played')"><div class="stat-big" id="s-played" style="color:var(--green)">—</div><div class="stat-small">Songs Played ↗</div></div>
       <div class="stat-card"><div class="stat-big" id="s-reacts" style="color:#FF8C00">—</div><div class="stat-small">Reactions</div></div>
       <div class="stat-card"><div class="stat-big" id="s-sessions" style="color:var(--blue)">—</div><div class="stat-small">Sessions</div></div>
     </div>
@@ -113,17 +139,17 @@ hr.div { border:none; border-top:1px solid var(--b1); margin:20px 0; }
       <div class="panel">
         <div class="panel-title">Request Outcomes</div>
         <div class="outcomes">
-          <div class="outcome-chip"><div class="outcome-num" id="o-played" style="color:var(--green)">—</div><div class="outcome-lbl">Played</div></div>
-          <div class="outcome-chip"><div class="outcome-num" id="o-later" style="color:var(--gold)">—</div><div class="outcome-lbl">Later</div></div>
-          <div class="outcome-chip"><div class="outcome-num" id="o-passed" style="color:var(--red2)">—</div><div class="outcome-lbl">Passed</div></div>
+          <div class="outcome-chip clickable-outcome" onclick="showDetailModal('played')" style="cursor:pointer"><div class="outcome-num" id="o-played" style="color:var(--green)">—</div><div class="outcome-lbl">Played ↗</div></div>
+          <div class="outcome-chip clickable-outcome" onclick="showDetailModal('later')" style="cursor:pointer"><div class="outcome-num" id="o-later" style="color:var(--gold)">—</div><div class="outcome-lbl">Later ↗</div></div>
+          <div class="outcome-chip clickable-outcome" onclick="showDetailModal('passed')" style="cursor:pointer"><div class="outcome-num" id="o-passed" style="color:var(--red2)">—</div><div class="outcome-lbl">Passed ↗</div></div>
         </div>
       </div>
       <div class="panel">
         <div class="panel-title">Crowd Reactions</div>
         <div class="reactions-row">
-          <div class="reaction-card"><div class="reaction-emoji">🔥</div><div class="reaction-count" id="r-fire">—</div><div class="reaction-label">Fire</div></div>
-          <div class="reaction-card"><div class="reaction-emoji">❤️</div><div class="reaction-count" id="r-love">—</div><div class="reaction-label">Love</div></div>
-          <div class="reaction-card"><div class="reaction-emoji">😐</div><div class="reaction-count" id="r-meh">—</div><div class="reaction-label">Meh</div></div>
+          <div class="reaction-card clickable-reaction" onclick="showDetailModal('fire')" style="cursor:pointer"><div class="reaction-emoji">🔥</div><div class="reaction-count" id="r-fire">—</div><div class="reaction-label">Fire ↗</div></div>
+          <div class="reaction-card clickable-reaction" onclick="showDetailModal('love')" style="cursor:pointer"><div class="reaction-emoji">❤️</div><div class="reaction-count" id="r-love">—</div><div class="reaction-label">Love ↗</div></div>
+          <div class="reaction-card clickable-reaction" onclick="showDetailModal('meh')" style="cursor:pointer"><div class="reaction-emoji">😐</div><div class="reaction-count" id="r-meh">—</div><div class="reaction-label">Meh ↗</div></div>
         </div>
       </div>
     </div>
@@ -136,6 +162,15 @@ hr.div { border:none; border-top:1px solid var(--b1); margin:20px 0; }
       <div class="panel"><div class="panel-title">Sessions</div><div id="sessions-list"><div class="loading-msg">Loading...</div></div></div>
     </div>
   </div>
+
+<div id="detail-modal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title">Detail</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
 </main>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -150,12 +185,31 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 let state = { venue:null, year:null, month:null, day:null };
 let cache = {};
 let npUnsub = null;
+let currentData = null;
 
-function watchNP(vid) {
+async function watchNP(vid) {
   if (npUnsub) npUnsub();
-  npUnsub = onSnapshot(doc(db,"nowplaying",vid), snap => {
-    if (!snap.exists()) return;
+  // Check if there is a currently LIVE session before showing Now Playing
+  npUnsub = onSnapshot(doc(db,"nowplaying",vid), async snap => {
+    if (!snap.exists()) {
+      document.getElementById("live-song").textContent = "No active session";
+      document.getElementById("live-artist").textContent = "";
+      return;
+    }
     const d = snap.data();
+    // Verify the session is still live
+    if (d.sessionId) {
+      const sessDocs = await getDocs(query(collection(db,"sessions"), where("venueId","==",vid), where("isLive","==",true)));
+      const isLive = sessDocs.docs.some(s => s.id === d.sessionId);
+      if (!isLive) {
+        document.getElementById("live-song").textContent = "DJ goes live in the evening";
+        document.getElementById("live-artist").textContent = "";
+        document.getElementById("live-fire").textContent = "0";
+        document.getElementById("live-love").textContent = "0";
+        document.getElementById("live-meh").textContent  = "0";
+        return;
+      }
+    }
     document.getElementById("live-song").textContent   = d.song   || "—";
     document.getElementById("live-artist").textContent = d.artist || "";
     const r = d.reactions || {};
@@ -201,6 +255,7 @@ function filter(data, y, m, d) {
 }
 
 function showAnalytics(data) {
+  currentData = data;
   const { requests, reactions, sessions } = data;
   document.getElementById("analytics-wrap").style.display = "";
   document.getElementById("s-requests").textContent = requests.length;
@@ -359,6 +414,94 @@ async function render() {
 }
 
 render();
-</script>
+
+window.closeModal = () => { document.getElementById("detail-modal").style.display = "none"; };
+
+const fmtDateTime = ts => {
+  const d = toDate(ts);
+  return d ? d.toLocaleDateString("en-IN",{day:"2-digit",month:"short"}) + " " +
+    d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:true}) : "—";
+};
+
+window.showDetailModal = (type) => {
+  if (!currentData) return;
+  const { requests, reactions } = currentData;
+  const modal   = document.getElementById("detail-modal");
+  const title   = document.getElementById("modal-title");
+  const sub     = document.getElementById("modal-sub");
+  const content = document.getElementById("modal-content");
+  const sortByTime = arr => [...arr].sort((a,b) => {
+    const ta = toDate(a.respondedAt||a.timestamp); const tb = toDate(b.respondedAt||b.timestamp);
+    return (tb||0)-(ta||0);
+  });
+
+  if (type==="requests") {
+    title.textContent = "All Requests";
+    sub.textContent   = requests.length + " requests in this period";
+    const statusMap = {accepted:"badge-accepted",nowplaying:"badge-accepted",later:"badge-later",passed:"badge-passed",alreadyplayed:"badge-passed"};
+    content.innerHTML = sortByTime(requests).map(r => `<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?`<span class="detail-badge badge-table">T${r.tableNumber}</span> `:""}${r.guestAge||""} ${r.guestGender||""}</div>
+      </div>
+      <span class="detail-badge ${statusMap[r.status]||"badge-later"}">${r.status==="nowplaying"?"played":r.status||"pending"}</span>
+    </div>`).join("") || "<div class='loading-msg'>No requests</div>";
+  }
+  else if (type==="played") {
+    const played = requests.filter(r=>r.status==="accepted"||r.status==="nowplaying");
+    title.textContent = "Songs Played";
+    sub.textContent   = played.length + " songs accepted";
+    content.innerHTML = sortByTime(played).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.respondedAt||r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""} ${r.guestAge||""} ${r.guestGender||""}</div>
+      </div>
+      <span class="detail-badge badge-accepted">played</span>
+    </div>`).join("") || "<div class='loading-msg'>No songs played yet</div>";
+  }
+  else if (type==="later") {
+    const later = requests.filter(r=>r.status==="later");
+    title.textContent = "Later Queue";
+    sub.textContent   = later.length + " requests put on hold";
+    content.innerHTML = sortByTime(later).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""}</div>
+      </div>
+      <span class="detail-badge badge-later">later</span>
+    </div>`).join("") || "<div class='loading-msg'>None put on later</div>";
+  }
+  else if (type==="passed") {
+    const passed = requests.filter(r=>r.status==="passed"||r.status==="alreadyplayed");
+    title.textContent = "Passed / Already Played";
+    sub.textContent   = passed.length + " requests passed";
+    content.innerHTML = sortByTime(passed).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songQuery||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""}</div>
+      </div>
+      <span class="detail-badge badge-passed">${r.status==="alreadyplayed"?"already played":"passed"}</span>
+    </div>`).join("") || "<div class='loading-msg'>None passed</div>";
+  }
+  else if (type==="fire"||type==="love"||type==="meh") {
+    const emoji = {fire:"🔥",love:"❤️",meh:"😐"}[type];
+    const filtered = reactions.filter(r=>r.type===type);
+    title.textContent = emoji + " Reactions";
+    sub.textContent   = filtered.length + " " + type + " reactions";
+    content.innerHTML = sortByTime(filtered).map(r=>`<div class="detail-row">
+      <div class="detail-time">${fmtDateTime(r.timestamp)}</div>
+      <div class="detail-main">
+        <div class="detail-song">${r.songName||"—"}</div>
+        <div class="detail-meta">${r.tableNumber?"Table "+r.tableNumber:""} ${r.guestAge||""} ${r.guestGender||""}</div>
+      </div>
+      <span class="detail-badge badge-table">${emoji}</span>
+    </div>`).join("") || "<div class='loading-msg'>No reactions yet</div>";
+  }
+  modal.style.display = "flex";
+};
 </body>
 </html>

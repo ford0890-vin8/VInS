@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VinS — DJ Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Barlow+Condensed:wght@300;400;500;600;700&family=Courier+Prime:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #08070A;
+            --card: #0F0E13;
+            --card2: #161520;
+            --b1: rgba(255,255,255,0.07);
+            --b2: rgba(255,255,255,0.13);
+            --gold: #E8A020;
+            --red: #C0392B;
+            --red2: #E74C3C;
+            --text: #F0EDE8;
+            --muted: rgba(240,237,232,0.4);
+            --green: #4CAF50;
+        }
+
+        html, body { 
+            height: 100%; 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: "Barlow Condensed", sans-serif; 
+            overflow: hidden; 
+        }
+
+        /* ── DJ MESSAGE EDITOR ── */
+        .message-editor {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--b1);
+        }
+
+        .editor-title {
+            font-size: 10px;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-family: "Courier Prime", monospace;
+            margin-bottom: 12px;
+        }
+
+        #message-textarea {
+            width: 100%;
+            height: 100px;
+            background: var(--card2);
+            border: 1px solid var(--b1);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text);
+            font-family: "Courier Prime", monospace;
+            font-size: 12px;
+            resize: vertical;
+            margin-bottom: 8px;
+        }
+
+        #message-textarea:focus {
+            border-color: rgba(232,160,32,0.4);
+            outline: none;
+        }
+
+        #add-message-btn {
+            width: 100%;
+            padding: 10px;
+            background: rgba(232,160,32,0.12);
+            border: 1px solid rgba(232,160,32,0.3);
+            border-radius: 8px;
+            color: var(--gold);
+            font-family: "Barlow Condensed", sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+
+        #add-message-btn:hover {
+            background: rgba(232,160,32,0.22);
+        }
+
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .message-item {
+            background: rgba(232,160,32,0.08);
+            border: 1px solid rgba(232,160,32,0.2);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 11px;
+            color: var(--text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .message-text {
+            flex: 1;
+            margin-right: 8px;
+            word-break: break-word;
+        }
+
+        .delete-msg-btn {
+            padding: 4px 8px;
+            background: rgba(192,57,43,0.2);
+            border: 1px solid rgba(192,57,43,0.4);
+            border-radius: 4px;
+            color: var(--red2);
+            font-size: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .delete-msg-btn:hover {
+            background: rgba(192,57,43,0.35);
+        }
+
+        /* Existing dashboard styles */
+        #dashboard {
+            display: grid;
+            grid-template-rows: 50px 1fr;
+            height: 100vh;
+        }
+
+        .dash-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            border-bottom: 1px solid var(--b1);
+            background: rgba(8,7,10,0.96);
+            flex-shrink: 0;
+        }
+
+        .dash-body {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            overflow: hidden;
+        }
+
+        .queue-col {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-right: 1px solid var(--b1);
+        }
+
+        .sidebar {
+            overflow-y: auto;
+            padding: 12px;
+            min-width: 0;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--b2);
+            border-radius: 2px;
+        }
+
+        .sidebar-title {
+            font-size: 10px;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-family: "Courier Prime", monospace;
+            margin-bottom: 9px;
+            padding-bottom: 7px;
+            border-bottom: 1px solid var(--b1);
+        }
+    </style>
+</head>
+<body>
+    <div id="dashboard">
+        <!-- Dashboard content will be inserted here by existing script -->
+        
+        <!-- DJ MESSAGE EDITOR SECTION (add to sidebar) -->
+        <div class="message-editor" id="message-editor-section" style="display: none; padding: 16px; border-top: 1px solid var(--b1);">
+            <div class="editor-title">📢 Ticker Messages</div>
+            <textarea id="message-textarea" placeholder="Type a message... (birthday wishes, instructions, announcements, etc)"></textarea>
+            <button id="add-message-btn" onclick="addMessage()">+ Add Message</button>
+            <div class="message-list" id="message-list"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAqBkxofG2zyJSpKYFUG4OnNBANjrc-Qok",
+            authDomain: "vtest-c064b.firebaseapp.com",
+            projectId: "vtest-c064b",
+            storageBucket: "vtest-c064b.firebasestorage.app",
+            messagingSenderId: "906778127218",
+            appId: "1:906778127218:web:5dd5f3e1c5d7c3f4e5c7d8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        let venue = "hidden-place";
+        let messages = [];
+
+        // Show message editor section
+        const editorSection = document.getElementById('message-editor-section');
+        if (editorSection) editorSection.style.display = 'block';
+
+        // Load messages from Firebase
+        onSnapshot(doc(db, "dj_messages", venue), (snap) => {
+            if (snap.exists() && snap.data().messages) {
+                messages = snap.data().messages;
+                renderMessages();
+            }
+        });
+
+        window.addMessage = async () => {
+            const textarea = document.getElementById('message-textarea');
+            const message = textarea.value.trim();
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, "dj_messages", venue), {
+                    messages: arrayUnion(message),
+                    updatedAt: serverTimestamp()
+                });
+                textarea.value = '';
+            } catch (err) {
+                console.error('Error adding message:', err);
+                alert('Failed to add message');
+            }
+        };
+
+        window.deleteMessage = async (index) => {
+            try {
+                const messageToDelete = messages[index];
+                await updateDoc(doc(db, "dj_messages", venue), {
+                    messages: arrayRemove(messageToDelete),
+                    updatedAt: serverTimestamp()
+                });
+            } catch (err) {
+                console.error('Error deleting message:', err);
+                alert('Failed to delete message');
+            }
+        };
+
+        function renderMessages() {
+            const list = document.getElementById('message-list');
+            list.innerHTML = messages.map((msg, i) => `
+                <div class="message-item">
+                    <span class="message-text">"${msg}"</span>
+                    <button class="delete-msg-btn" onclick="deleteMessage(${i})">🗑 Delete</button>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

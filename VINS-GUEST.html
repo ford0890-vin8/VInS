@@ -767,7 +767,9 @@ function startFirebase() {
         document.getElementById("np-song").textContent   = "Waiting for DJ...";
         document.getElementById("np-artist").textContent = "";
         document.getElementById("ticker-song").textContent = "—";
-        // DJ Message Banner
+        
+        return;
+      // DJ Message Banner
 onSnapshot(doc(db, "dj_messages", VENUE), snap => {
 const banner = document.getElementById("dj-banner");
 const text = document.getElementById("dj-banner-text");
@@ -778,8 +780,6 @@ return;
 if (text) text.textContent = snap.data().message;
 if (banner) banner.style.display = "";
 }, err => console.warn("DJ banner:", err.message));
-        return;
-      }
 
       const prevSong = nowSong;
       nowSong = d.song || "";

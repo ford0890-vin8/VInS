@@ -760,7 +760,17 @@ function startFirebase() {
     snap => {
       if (!snap.exists()) return;
       const d = snap.data();
-
+// DJ Message Banner
+onSnapshot(doc(db, "dj_messages", VENUE), snap => {
+const banner = document.getElementById("dj-banner");
+const text = document.getElementById("dj-banner-text");
+if (!snap.exists() || !snap.data().active || !snap.data().message) {
+if (banner) banner.style.display = "none";
+return;
+}
+if (text) text.textContent = snap.data().message;
+if (banner) banner.style.display = "";
+}, err => console.warn("DJ banner:", err.message));
       // Only show Now Playing if it belongs to the CURRENT session
       // Prevents last nights song showing when guest returns
       if (d.sessionId && d.sessionId !== sid) {
